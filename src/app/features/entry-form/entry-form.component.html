@@ -1,0 +1,211 @@
+<div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-sm" (click)="close()">
+  <div class="flex min-h-full items-center justify-center p-4 sm:p-6">
+    <div #panel role="dialog" aria-modal="true" aria-labelledby="entry-form-title" tabindex="-1"
+         class="flex max-h-[calc(100dvh-2rem)] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl outline-none"
+         (click)="$event.stopPropagation()">
+
+      <div class="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-4">
+        <div>
+          <h2 id="entry-form-title" class="text-lg font-bold text-slate-900">
+            {{ entryId ? 'Edit entry #' + entryId : 'New time entry' }}
+          </h2>
+          <p class="mt-0.5 text-sm text-slate-500">
+            @if (entryId && createdAt()) {
+              Created {{ createdAt() | date: 'MMM d, y, HH:mm' }}
+            } @else {
+              Pick a task, describe the work and set the time.
+            }
+          </p>
+        </div>
+        <button type="button" class="-mr-2 grid size-10 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                (click)="close()" aria-label="Close">
+          <app-icon name="close" />
+        </button>
+      </div>
+
+      @if (notFound()) {
+        <div class="p-6">
+          <div class="alert-error" role="alert">
+            <p class="font-medium">This entry no longer exists.</p>
+            <p class="mt-1">It may have been deleted, or the link is wrong.</p>
+          </div>
+          <div class="mt-6 flex justify-end">
+            <button type="button" class="btn btn-secondary" (click)="close()">Back to the list</button>
+          </div>
+        </div>
+      } @else {
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate [attr.aria-busy]="loadingEntry()" class="flex min-h-0 flex-1 flex-col">
+          <div class="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-5">
+            @if (saved(); as s) {
+              <div class="alert-success" role="status">
+                <p class="flex items-center gap-2 font-semibold">
+                  <app-icon name="check" cls="size-4" />
+                  Entry #{{ s.id }} was {{ savedAction() }}.
+                </p>
+                <p class="mt-1">
+                  {{ s.start | date: 'MMM d, HH:mm' }} – {{ s.end | date: 'HH:mm' }} · {{ s.comment }}
+                </p>
+                @if (savedAction() === 'created') {
+                  <p class="mt-1 text-emerald-800">The next entry starts where this one ended.</p>
+                }
+              </div>
+            }
+
+            @if (error()) {
+              <div class="alert-error" role="alert">{{ error() }}</div>
+            }
+
+            @if (loadingEntry()) {
+              <p class="flex items-center gap-2 text-sm text-slate-500">
+                <span class="size-4 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500" aria-hidden="true"></span>
+                Loading entry…
+              </p>
+            }
+
+            <fieldset class="space-y-2.5">
+              <legend class="label mb-2">Task <span class="text-red-600" aria-hidden="true">*</span></legend>
+
+              @if (value().taskId && !pickerOpen()) {
+                <div class="flex items-center gap-3 rounded-xl border border-indigo-200 bg-indigo-50 px-3.5 py-3">
+                  <app-icon name="task" cls="size-5 shrink-0 text-indigo-600" />
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate font-semibold text-slate-900">{{ taskName() }}</span>
+                    <span class="block truncate text-xs text-slate-600">
+                      {{ taskPath() ? taskPath() + ' · ' : '' }}#{{ value().taskId }}
+                    </span>
+                  </span>
+                  <button type="button" class="btn btn-secondary min-h-9 px-3 text-indigo-700" (click)="openPicker()" [disabled]="loadingEntry()">Change</button>
+                </div>
+              } @else {
+                <div class="space-y-3 rounded-xl border border-slate-200 p-3">
+                  <div class="grid gap-2 sm:grid-cols-3">
+                    <select class="input" aria-label="Client" (change)="pickClient($any($event.target).value)">
+                      <option value="">Client…</option>
+                      @for (c of clients(); track c.id) {
+                        <option [value]="c.id">{{ c.name }}</option>
+                      }
+                    </select>
+                    <select class="input" aria-label="Project" (change)="pickProject($any($event.target).value)" [disabled]="!projects().length">
+                      <option value="">Project…</option>
+                      @for (p of projects(); track p.id) {
+                        <option [value]="p.id">{{ p.name }}</option>
+                      }
+                    </select>
+                    <select class="input" aria-label="Task" (change)="pickTask($any($event.target).value)" [disabled]="!tasks().length">
+                      <option value="">Task…</option>
+                      @for (t of tasks(); track t.id) {
+                        <option [value]="t.id">{{ t.name }}</option>
+                      }
+                    </select>
+                  </div>
+                  @if (pickerError()) {
+                    <p class="field-error">{{ pickerError() }}</p>
+                  }
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <button type="button" class="text-sm font-medium text-indigo-700 hover:underline" (click)="manualId.set(!manualId())">
+                      {{ manualId() ? 'Hide task ID field' : 'Enter a task ID instead' }}
+                    </button>
+                    @if (value().taskId) {
+                      <button type="button" class="text-sm font-medium text-slate-600 hover:underline" (click)="pickerOpen.set(false)">Keep current task</button>
+                    }
+                  </div>
+                  @if (manualId()) {
+                    <input type="number" min="1" class="input sm:w-40" formControlName="taskId" placeholder="Task ID" aria-label="Task ID" />
+                  }
+                </div>
+              }
+
+              @if (recent().length) {
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="text-xs text-slate-500">Recent:</span>
+                  @for (t of recent(); track t.id) {
+                    <button type="button" class="chip-soft" (click)="pickRecent(t)" [title]="t.path ?? ''" [disabled]="loadingEntry()">{{ t.name }}</button>
+                  }
+                </div>
+              }
+
+              @if (invalid('taskId')) {
+                <p class="field-error">Choose a task, or enter a valid task ID.</p>
+              }
+            </fieldset>
+
+            <div>
+              <label for="comment" class="label">What did you work on? <span class="text-red-600" aria-hidden="true">*</span></label>
+              <textarea id="comment" rows="3" class="input mt-1.5" formControlName="comment"
+                        placeholder="e.g. Reviewed the API integration and fixed date handling"></textarea>
+              <div class="mt-1 flex justify-between gap-4 text-xs">
+                @if (invalid('comment')) {
+                  <span class="field-error">Please describe the work (up to 500 characters).</span>
+                } @else {
+                  <span class="text-slate-500">Keep it short and clear, it appears in reports.</span>
+                }
+                <span class="text-slate-500 tabular-nums">{{ value().comment.length }} / 500</span>
+              </div>
+            </div>
+
+            <fieldset class="space-y-3">
+              <legend class="label mb-2">When <span class="text-red-600" aria-hidden="true">*</span></legend>
+              <div class="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label for="start" class="text-sm text-slate-600">Start</label>
+                  <input id="start" type="datetime-local" class="input mt-1" formControlName="start" />
+                </div>
+                <div>
+                  <label for="end" class="text-sm text-slate-600">End</label>
+                  <input id="end" type="datetime-local" class="input mt-1" formControlName="end" />
+                </div>
+              </div>
+
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex flex-wrap gap-1.5">
+                  <button type="button" class="chip" (click)="setLast(30)" [disabled]="loadingEntry()">Last 30 min</button>
+                  <button type="button" class="chip" (click)="setLast(60)" [disabled]="loadingEntry()">Last hour</button>
+                  <button type="button" class="chip" (click)="shiftEnd(-15)" [disabled]="loadingEntry()" aria-label="End 15 minutes earlier">End −15 min</button>
+                  <button type="button" class="chip" (click)="shiftEnd(15)" [disabled]="loadingEntry()" aria-label="End 15 minutes later">End +15 min</button>
+                  <button type="button" class="chip" (click)="endNow()" [disabled]="loadingEntry()">End now</button>
+                </div>
+                <span class="flex items-baseline gap-2">
+                  <span class="text-sm text-slate-500">Duration</span>
+                  <span class="text-xl font-bold text-slate-900 tabular-nums">{{ durationLabel() }}</span>
+                </span>
+              </div>
+
+              @if (form.hasError('endBeforeStart')) {
+                <p class="field-error" role="alert">End time must be after the start time.</p>
+              } @else {
+                @if (isLong()) {
+                  <p class="alert-warning" role="status">This entry is longer than 12 hours. Please double-check the times.</p>
+                }
+                @if (overlap(); as o) {
+                  <p class="alert-warning" role="status">
+                    Overlaps {{ o.minutes }} min with entry #{{ o.entry.id }}
+                    ({{ o.entry.start | date: 'HH:mm' }} – {{ o.entry.end | date: 'HH:mm' }}). You can still save, but double-check the times.
+                  </p>
+                }
+              }
+            </fieldset>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
+            @if (entryId && !loadingEntry()) {
+              <button type="button" class="btn px-3 font-semibold text-red-700 hover:bg-red-50" (click)="remove()" [disabled]="saving() || deleting()">
+                <app-icon name="trash" cls="size-4" />
+                {{ deleting() ? 'Deleting…' : deleteArmed() ? 'Click again to delete' : 'Delete' }}
+              </button>
+            }
+            <span class="flex-1"></span>
+            <button type="button" class="btn btn-secondary" (click)="close()">{{ saved() ? 'Close' : 'Cancel' }}</button>
+            <button type="submit" class="btn btn-primary" [disabled]="saving() || loadingEntry() || deleting()">
+              @if (saving()) {
+                <span class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden="true"></span>
+                Saving…
+              } @else {
+                {{ entryId ? 'Save changes' : 'Create entry' }}
+              }
+            </button>
+          </div>
+        </form>
+      }
+    </div>
+  </div>
+</div>

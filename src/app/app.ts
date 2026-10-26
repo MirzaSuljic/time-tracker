@@ -1,12 +1,19 @@
-import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, computed, inject } from '@angular/core';
+import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { RATE_LIMIT, RateLimiter } from './core/services/rate-limiter';
+import { IconComponent } from './core/ui/icon.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent],
   templateUrl: './app.html',
-  styleUrl: './app.scss'
 })
 export class App {
-  protected readonly title = signal('time-tracker');
+  protected readonly limiter = inject(RateLimiter);
+  protected readonly limit = RATE_LIMIT;
+  protected readonly bars = computed(() => {
+    const filled = Math.ceil((this.limiter.remaining() / RATE_LIMIT) * 5);
+    const low = this.limiter.remaining() <= 3;
+    return [0, 1, 2, 3, 4].map(i => (i < filled ? (low ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-slate-300'));
+  });
 }
