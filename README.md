@@ -52,7 +52,10 @@ Delete (`DELETE /time-entries/:id`) is not required by the task; it is included 
 
 | Screen | URL | Task |
 | --- | --- | --- |
-| Clients & projects | `/tree`, `/tree?client=1`, `/tree?client=1&project=11` | Task 1: clients → projects → tasks and sub-tasks |
+| Clients | `/tree?page=1&size=10&sortBy=name&order=asc` | Task 1: paginated, sortable clients list (`app-tree`) |
+| Client: projects | `/tree/1` | Task 1: client heading in `app-tree-details`, which embeds `app-project-list` |
+| Project: tasks | `/tree/1/projects/11` | Task 1: the project's tasks and sub-tasks (`app-project-details` with its heading, `app-task-list` loads and shows the tasks table) |
+| Task details | `/tree/1/projects/11/tasks/7` | Task 1: status, project, parent task, sub-tasks and Log time (`app-task-details`) |
 | Timesheet | `/entries?page=1&size=10&sortBy=start&order=desc` | Task 2: paginated list, grouped by day, plus quick add |
 | New / edit entry (dialog over the list) | `/entries/new`, `/entries/:id/edit` | Task 3: create, update and delete |
 
@@ -65,7 +68,13 @@ src/app/
     utils/         dates (ISO 8601 <-> local time, durations)
     ui/            icon component, modal component
   features/
-    tree/          Task 1: clients, projects and tasks
+    tree/              Task 1, one folder per component, plus tree-utils (shared helpers)
+      tree.component   app-tree: clients list with paging and sorting
+      tree-details/    app-tree-details: client heading, sidebar path, embeds app-project-list, outlet for deeper levels
+      project-list/    app-project-list: loads a client's projects (clientId input)
+      project-details/ app-project-details: project heading, embeds app-task-list
+      task-list/       app-task-list: loads a project's tasks, table with sub-tasks
+      task-details/    app-task-details: one task with parent, sub-tasks and Log time
     entries/       Task 2: timesheet, quick add, delete
     entry-form/    Task 3: create / edit dialog
 ```
@@ -73,9 +82,9 @@ src/app/
 ## Decisions
 
 - **Rate limit (15 requests per minute).** Requests go through a client-side sliding-window queue, so the app waits instead of failing. Every response carries `RateLimit-Remaining` and `RateLimit-Reset`; the limiter syncs with them, so it also knows about requests from other tabs or before a refresh. When the server says 0 are left, the next request waits until the reset. If a 429 still happens, the request is retried after `Retry-After`, or after `RateLimit-Reset` when that header is missing. A banner shows the countdown.
-- **Drill-down instead of loading the whole tree.** The task asks for a client → project → task hierarchy. Loading all of it up front costs one request per client and per project and hits the limit at once. The browser shows one level at a time: a clients table, then that client's projects, then that project's tasks, with a sidebar that keeps the path (client → project) and a back button one level up. Each step is one request, results are cached, and the current level lives in the URL.
+- **Drill-down instead of loading the whole tree.** The task asks for a client → project → task hierarchy. Loading all of it up front costs one request per client and per project and hits the limit at once. The browser shows one level at a time: a clients table, then that client's projects, then that project's tasks, with a sidebar that keeps the path (client → project) and a back button one level up. Each step is one request, results are cached, and the current level lives in the URL. Every level is its own component and route: clients (`app-tree`), a client (`app-tree-details` with its heading, embedding `app-project-list`), a project (`app-project-details`, which holds the heading and embeds `app-task-list`; the task list loads its own data from `clientId` and `projectId` inputs) and one task (`app-task-details`). Project and task pages render through the router outlet of `app-tree-details`, which keeps the sidebar path (client → project → task) and the back button. Going back to all clients restores the page, size and sorting you came from.
 - **The API does not say whether a client has projects.** The › next to a client disappears once its projects were loaded and turned out empty.
-- **Paging without a total.** List endpoints return plain arrays and no total header. Lists ask for `limit + 1` rows; one extra row means there is a next page. For clients, the app also loads the full list once in pages of 50 (cached, shared with the task picker) to show "1–10 of 100" and numbered pages `1 2 … 10`. That costs a few requests per session for a typical client list; for thousands of clients a server-side total would be needed.
+- **Paging without a total.** List endpoints return plain arrays and no total header. Lists ask for `limit + 1` rows; one extra row means there is a next page. The pager shows the current range ("1–10") and page number. Counting all clients would cost extra requests from the 15-per-minute limit, so a total needs a server-side count.
 - **Sorting.** `sortBy` has no default in the API, so it is only sent when the user picks a field; `order` is always sent and defaults to `asc`. Sorting happens on the server, before paging, so page 2 really continues page 1. Page, size, `sortBy` and `order` live in the URL, so refresh and shared links keep them.
 - **Timesheet.** Entries are grouped by day with a daily total. The task column shows the task name and its client and project when known, next to the task ID.
 - **Transparency about the limit.** The header shows how many requests are left this minute, taken from the server's `RateLimit-Remaining` header.
@@ -90,7 +99,6 @@ src/app/
 
 - `dates`: ISO 8601 round trip, duration formatting, shifting times.
 - `RateLimiter`: the first 15 requests go out at once, the 16th waits about a minute; the server's `RateLimit-Remaining` and `RateLimit-Reset` are followed.
-- `pageList`: numbered pages with first, last, neighbours and gaps.
 - `ApiService`: lists ask for `limit + 1` and report a next page; `sortBy` is only sent when chosen; the client list is requested once and shared.
 - `flattenTasks`: sub-tasks follow their parent, one level deeper.
 - `groupByDay`: entries are grouped per day with the right totals.

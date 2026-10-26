@@ -26,6 +26,7 @@ export class ApiService {
   private cache = new Map<string, Observable<unknown>>();
   private changed = new Subject<void>();
   private clientInfo = signal<Record<number, string>>({});
+  private clientData = signal<Record<number, Client>>({});
   private projectInfo = signal<Record<number, { name: string; clientId: number }>>({});
   private taskInfo = signal<Record<number, TaskInfo>>({});
   private projectCounts = signal<Record<number, number>>({});
@@ -34,7 +35,13 @@ export class ApiService {
   readonly entriesChanged$ = this.changed.asObservable();
   readonly loadedEntries = this.entries.asReadonly();
   readonly clientNames = this.clientInfo.asReadonly();
+  readonly knownClients = this.clientData.asReadonly();
   readonly projectsPerClient = this.projectCounts.asReadonly();
+  readonly projectNames = computed(() => {
+    const names: Record<number, string> = {};
+    for (const [id, p] of Object.entries(this.projectInfo())) names[Number(id)] = p.name;
+    return names;
+  });
   readonly taskNames = computed(() => {
     const names: Record<number, string> = {};
     for (const [id, t] of Object.entries(this.taskInfo())) names[Number(id)] = t.name;
@@ -160,6 +167,11 @@ export class ApiService {
     this.clientInfo.update(m => {
       const next = { ...m };
       for (const c of clients) next[c.id] = c.name;
+      return next;
+    });
+    this.clientData.update(m => {
+      const next = { ...m };
+      for (const c of clients) next[c.id] = c;
       return next;
     });
   }

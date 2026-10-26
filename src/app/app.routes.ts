@@ -1,11 +1,23 @@
 import { Routes } from '@angular/router';
 import { TreeComponent } from './features/tree/tree.component';
+import { TreeDetailsComponent } from './features/tree/tree-details/tree-details.component';
+import { ProjectDetailsComponent } from './features/tree/projects/project-details/project-details.component';
+import { TaskDetailsComponent } from './features/tree/tasks/task-details/task-details.component';
 import { EntriesComponent } from './features/entries/entries.component';
 import { EntryFormComponent } from './features/entry-form/entry-form.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'entries', pathMatch: 'full' },
   { path: 'tree', component: TreeComponent, title: 'Clients & projects · Time Tracker' },
+  {
+    path: 'tree/:clientId',
+    component: TreeDetailsComponent,
+    children: [
+      { path: '', pathMatch: 'full', children: [], title: 'Projects · Time Tracker' },
+      { path: 'projects/:projectId', component: ProjectDetailsComponent, title: 'Tasks · Time Tracker' },
+      { path: 'projects/:projectId/tasks/:taskId', component: TaskDetailsComponent, title: 'Task · Time Tracker' },
+    ],
+  },
   {
     path: 'entries',
     component: EntriesComponent,

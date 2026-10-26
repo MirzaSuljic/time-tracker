@@ -1,0 +1,84 @@
+@switch (state().status) {
+  @case ('error') {
+    <section class="card p-1" aria-label="Task">
+      <div class="alert-error m-4 flex flex-wrap items-center justify-between gap-3" role="alert">
+        <span>This task could not be loaded.</span>
+        <button type="button" class="btn btn-secondary" (click)="retry()">Try again</button>
+      </div>
+    </section>
+  }
+  @case ('loading') {
+    <section class="card space-y-3 p-5" aria-busy="true" aria-label="Loading task">
+      <div class="h-6 w-1/2 animate-pulse rounded bg-slate-100"></div>
+      @for (row of [1, 2, 3]; track row) {
+        <div class="h-10 animate-pulse rounded-lg bg-slate-100"></div>
+      }
+    </section>
+  }
+  @default {
+    @if (task(); as t) {
+      <div class="mb-5">
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900">{{ t.name }}</h1>
+        <p class="mt-1 text-sm text-slate-600">Task details. Press Log time to add an entry for this task.</p>
+      </div>
+      <section class="card min-w-0 overflow-hidden" aria-label="Task">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+          <div class="flex min-w-0 items-center gap-3">
+            <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-indigo-50 text-indigo-600">
+              <app-icon name="task" />
+            </span>
+            <div class="min-w-0">
+              <h2 class="text-[15px] font-semibold text-slate-900">Details</h2>
+              <p class="font-mono text-xs text-slate-500">#{{ t.id }}</p>
+            </div>
+          </div>
+          <a [routerLink]="['/entries/new']" [queryParams]="{ taskId: t.id }" class="btn btn-primary">
+            <app-icon name="plus" cls="size-4" />
+            Log time
+          </a>
+        </div>
+
+        <dl class="grid gap-x-6 gap-y-4 px-5 py-5 sm:grid-cols-2">
+          <div>
+            <dt class="text-xs font-medium tracking-wide text-slate-500 uppercase">Status</dt>
+            <dd class="mt-1"><span class="status" [class]="statusClass(t.status)">{{ t.status }}</span></dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium tracking-wide text-slate-500 uppercase">Name</dt>
+            <dd class="mt-1">
+              <a [routerLink]="projectLink()" class="font-medium text-indigo-700 hover:underline">{{ projectName() }}</a>
+            </dd>
+          </div>
+        </dl>
+
+        @if (subTasks().length) {
+          <div class="border-t border-slate-200">
+            <h3 class="th border-b border-slate-200 bg-slate-50 px-5 py-2.5">Sub-tasks</h3>
+            <ul>
+              @for (s of subTasks(); track s.id) {
+                <li class="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-2 last:border-b-0">
+                  <span class="flex min-w-0 items-center gap-2.5">
+                    <app-icon name="task" cls="size-[18px] shrink-0 text-indigo-500" />
+                    <a [routerLink]="taskLink(s.id)" class="truncate font-medium text-slate-900 hover:text-indigo-700 hover:underline">{{ s.name }}</a>
+                    <span class="font-mono text-xs text-slate-500">#{{ s.id }}</span>
+                  </span>
+                  <a [routerLink]="['/entries/new']" [queryParams]="{ taskId: s.id }"
+                     class="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-indigo-200 bg-white px-3 text-sm font-semibold text-indigo-700 hover:bg-indigo-50"
+                     [attr.aria-label]="'Log time for ' + s.name">
+                    <app-icon name="plus" cls="size-3.5" />
+                    Log time
+                  </a>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+      </section>
+    } @else {
+      <section class="card px-5 py-14 text-center" aria-label="Task">
+        <p class="font-medium text-slate-900">This task was not found in the project</p>
+        <a [routerLink]="projectLink()" class="btn btn-secondary mt-4">Back to tasks</a>
+      </section>
+    }
+  }
+}

@@ -1,0 +1,53 @@
+<section class="card min-w-0 overflow-hidden" aria-label="Projects">
+  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-3.5">
+    <h2 class="text-[15px] font-semibold text-slate-900">Projects</h2>
+    @if (state().status === 'loaded') {
+      <span class="text-sm text-slate-500">{{ projects().length }} projects</span>
+    }
+  </div>
+
+  @switch (state().status) {
+    @case ('error') {
+      <div class="alert-error m-4 flex flex-wrap items-center justify-between gap-3" role="alert">
+        <span>This list could not be loaded.</span>
+        <button type="button" class="btn btn-secondary" (click)="retry()">Try again</button>
+      </div>
+    }
+    @case ('loading') {
+      <div class="space-y-3 p-5" aria-busy="true" aria-label="Loading projects">
+        @for (row of [1, 2, 3, 4]; track row) {
+          <div class="h-10 animate-pulse rounded-lg bg-slate-100"></div>
+        }
+      </div>
+    }
+    @default {
+      <div class="overflow-x-auto">
+        <div class="min-w-[520px]">
+          <div class="th grid grid-cols-[minmax(0,1fr)_5.5rem_8rem_2.5rem] gap-4 border-b border-slate-200 bg-slate-50 px-5 py-2.5">
+            <span>Project</span><span>ID</span><span>Status</span><span></span>
+          </div>
+          @for (p of projects(); track p.id) {
+            <a [routerLink]="['/tree', clientId(), 'projects', p.id]"
+               class="grid min-h-15 w-full grid-cols-[minmax(0,1fr)_5.5rem_8rem_2.5rem] items-center gap-4 border-b border-slate-100 px-5 py-2.5 text-left hover:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600"
+               [attr.aria-label]="'Open ' + p.name">
+              <span class="flex min-w-0 items-center gap-3">
+                <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-sky-50 text-sky-700">
+                  <app-icon name="folder" cls="size-[18px]" />
+                </span>
+                <span class="truncate font-semibold text-slate-900">{{ p.name }}</span>
+              </span>
+              <span class="font-mono text-xs text-slate-500">#{{ p.id }}</span>
+              <span class="status" [class]="statusClass(p.status)">{{ p.status }}</span>
+              <span class="grid place-items-center text-slate-400"><app-icon name="chevron" cls="size-5" /></span>
+            </a>
+          } @empty {
+            <div class="px-5 py-14 text-center">
+              <p class="font-medium text-slate-900">No projects for this client yet</p>
+              <button type="button" class="btn btn-secondary mt-4" (click)="toClients()">Back to all clients</button>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  }
+</section>

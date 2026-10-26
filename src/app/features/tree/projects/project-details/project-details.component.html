@@ -1,0 +1,8 @@
+<div class="mb-5">
+  <h1 class="text-2xl font-bold tracking-tight text-slate-900">{{ projectName() }}</h1>
+  <p class="mt-1 text-sm text-slate-600">Pick a task and press Log time, or open it for details. Sub-tasks sit under their parent.</p>
+</div>
+
+@if (params().client !== null && params().project !== null) {
+  <app-task-list [clientId]="params().client!" [projectId]="params().project!" />
+}

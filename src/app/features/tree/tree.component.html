@@ -1,254 +1,102 @@
 <div class="mb-6">
-  @switch (view()) {
-    @case ('clients') {
-      <h1 class="text-2xl font-bold tracking-tight text-slate-900">Clients &amp; projects</h1>
-      <p class="mt-1 text-sm text-slate-600">Choose a client to see its projects.</p>
-    }
-    @case ('projects') {
-      <h1 class="text-2xl font-bold tracking-tight text-slate-900">{{ clientName() }}</h1>
-      <p class="mt-1 text-sm text-slate-600">Choose a project to see its tasks.</p>
-    }
-    @case ('tasks') {
-      <h1 class="text-2xl font-bold tracking-tight text-slate-900">{{ projectName() }}</h1>
-      <p class="mt-1 text-sm text-slate-600">Pick a task and press Log time. Sub-tasks sit under their parent.</p>
-    }
-  }
+  <h1 class="text-2xl font-bold tracking-tight text-slate-900">Clients &amp; projects</h1>
+  <p class="mt-1 text-sm text-slate-600">Choose a client to see its projects.</p>
 </div>
 
-@if (view() === 'clients') {
-  <section class="card overflow-hidden" aria-label="Clients">
-    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
-      <div class="flex flex-wrap items-center gap-3">
-        <label class="flex items-center gap-2 text-sm text-slate-600">
-          Sort by
-          <select class="input w-auto py-1.5" (change)="setSortBy($any($event.target).value)">
-            <option value="" [selected]="!sortBy()">Default</option>
-            @for (o of sortOptions; track o.value) {
-              <option [value]="o.value" [selected]="o.value === sortBy()">{{ o.label }}</option>
-            }
-          </select>
-        </label>
-        <label class="flex items-center gap-2 text-sm text-slate-600">
-          Order
-          <select class="input w-auto py-1.5" (change)="setOrder($any($event.target).value)">
-            <option value="asc" [selected]="order() === 'asc'">Ascending</option>
-            <option value="desc" [selected]="order() === 'desc'">Descending</option>
-          </select>
-        </label>
-      </div>
-      <nav class="flex flex-wrap items-center gap-2" aria-label="Clients pagination">
-        @if (clients().length) {
-          <span class="mr-1 text-sm text-slate-500 tabular-nums" aria-live="polite">{{ range() }}</span>
-        }
-        <button type="button" class="icon-btn" (click)="go(page() - 1)" [disabled]="page() === 1 || state().status === 'loading'" aria-label="Previous page">
-          <app-icon name="chevron" cls="size-4 rotate-180" />
-        </button>
-        @for (p of pages().length ? pages() : [page()]; track $index) {
-          @if (p === null) {
-            <span class="px-1 text-slate-400" aria-hidden="true">…</span>
-          } @else if (p === page()) {
-            <span class="grid h-9 min-w-9 place-items-center rounded-lg bg-indigo-600 px-2 text-sm font-semibold text-white tabular-nums" aria-current="page">{{ p }}</span>
-          } @else {
-            <button type="button" class="icon-btn text-sm font-medium tabular-nums" (click)="go(p)" [disabled]="state().status === 'loading'" [attr.aria-label]="'Page ' + p">{{ p }}</button>
-          }
-        }
-        <button type="button" class="icon-btn" (click)="go(page() + 1)" [disabled]="!hasNext() || state().status === 'loading'" aria-label="Next page">
-          <app-icon name="chevron" cls="size-4" />
-        </button>
-        <select class="input ml-1 w-auto py-1.5" aria-label="Clients per page" (change)="go(1, +$any($event.target).value)">
-          @for (s of sizes; track s) {
-            <option [value]="s" [selected]="s === size()">{{ s }} per page</option>
+<section class="card overflow-hidden" aria-label="Clients">
+  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
+    <div class="flex flex-wrap items-center gap-3">
+      <label class="flex items-center gap-2 text-sm text-slate-600">
+        Sort by
+        <select class="input w-auto py-1.5" (change)="setSortBy($any($event.target).value)">
+          <option value="" [selected]="!sortBy()">Default</option>
+          @for (o of sortOptions; track o.value) {
+            <option [value]="o.value" [selected]="o.value === sortBy()">{{ o.label }}</option>
           }
         </select>
-      </nav>
+      </label>
+      <label class="flex items-center gap-2 text-sm text-slate-600">
+        Order
+        <select class="input w-auto py-1.5" (change)="setOrder($any($event.target).value)">
+          <option value="asc" [selected]="order() === 'asc'">Ascending</option>
+          <option value="desc" [selected]="order() === 'desc'">Descending</option>
+        </select>
+      </label>
     </div>
-
-    @if (state().status === 'error') {
-      <div class="alert-error m-4 flex flex-wrap items-center justify-between gap-3" role="alert">
-        <span>This list could not be loaded.</span>
-        <button type="button" class="btn btn-secondary" (click)="retry()">Try again</button>
-      </div>
-    } @else if (state().status === 'loading' && clients().length === 0) {
-      <div class="space-y-3 p-5" aria-busy="true" aria-label="Loading clients">
-        @for (row of [1, 2, 3, 4, 5]; track row) {
-          <div class="flex items-center gap-3">
-            <div class="size-9 animate-pulse rounded-lg bg-slate-100"></div>
-            <div class="h-4 flex-1 animate-pulse rounded bg-slate-100"></div>
-          </div>
+    <nav class="flex flex-wrap items-center gap-2" aria-label="Clients pagination">
+      @if (clients().length) {
+        <span class="mr-1 text-sm text-slate-500 tabular-nums" aria-live="polite">{{ range() }}</span>
+      }
+      <button type="button" class="icon-btn" (click)="go(page() - 1)" [disabled]="page() === 1 || state().status === 'loading'" aria-label="Previous page">
+        <app-icon name="chevron" cls="size-4 rotate-180" />
+      </button>
+      <span class="grid h-9 min-w-9 place-items-center rounded-lg bg-indigo-600 px-2 text-sm font-semibold text-white tabular-nums" aria-current="page">{{ page() }}</span>
+      <button type="button" class="icon-btn" (click)="go(page() + 1)" [disabled]="!hasNext() || state().status === 'loading'" aria-label="Next page">
+        <app-icon name="chevron" cls="size-4" />
+      </button>
+      <select class="input ml-1 w-auto py-1.5" aria-label="Clients per page" (change)="go(1, +$any($event.target).value)">
+        @for (s of sizes; track s) {
+          <option [value]="s" [selected]="s === size()">{{ s }} per page</option>
         }
-      </div>
-    } @else {
-      <div class="overflow-x-auto">
-        <div class="min-w-[560px] transition-opacity" [class]="state().status === 'loading' ? 'opacity-60' : ''">
-          <div class="th grid grid-cols-[minmax(0,1fr)_5.5rem_7.5rem_2.5rem] gap-4 border-b border-slate-200 bg-slate-50 px-5 py-2.5">
-            <span>Client</span><span>ID</span><span>Status</span><span></span>
-          </div>
-          @for (c of clients(); track c.id) {
-            <button type="button" (click)="openClient(c)"
-                    class="grid min-h-16 w-full grid-cols-[minmax(0,1fr)_5.5rem_7.5rem_2.5rem] items-center gap-4 border-b border-slate-100 px-5 py-2.5 text-left hover:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600"
-                    [attr.aria-label]="'Open ' + c.name">
-              <span class="flex min-w-0 items-center gap-3">
-                <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-indigo-50 text-indigo-600">
-                  <app-icon name="building" />
-                </span>
-                <span class="min-w-0">
-                  <span class="block truncate font-semibold text-slate-900">{{ c.name }}</span>
-                  @if (c.description) {
-                    <span class="block truncate text-xs text-slate-500">{{ c.description }}</span>
-                  }
-                </span>
+      </select>
+    </nav>
+  </div>
+
+  @if (state().status === 'error') {
+    <div class="alert-error m-4 flex flex-wrap items-center justify-between gap-3" role="alert">
+      <span>This list could not be loaded.</span>
+      <button type="button" class="btn btn-secondary" (click)="retry()">Try again</button>
+    </div>
+  } @else if (state().status === 'loading' && clients().length === 0) {
+    <div class="space-y-3 p-5" aria-busy="true" aria-label="Loading clients">
+      @for (row of [1, 2, 3, 4, 5]; track row) {
+        <div class="flex items-center gap-3">
+          <div class="size-9 animate-pulse rounded-lg bg-slate-100"></div>
+          <div class="h-4 flex-1 animate-pulse rounded bg-slate-100"></div>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="overflow-x-auto">
+      <div class="min-w-[560px] transition-opacity" [class]="state().status === 'loading' ? 'opacity-60' : ''">
+        <div class="th grid grid-cols-[minmax(0,1fr)_5.5rem_7.5rem_2.5rem] gap-4 border-b border-slate-200 bg-slate-50 px-5 py-2.5">
+          <span>Client</span><span>ID</span><span>Status</span><span></span>
+        </div>
+        @for (c of clients(); track c.id) {
+          <button type="button" (click)="openClient(c)"
+                  class="grid min-h-16 w-full grid-cols-[minmax(0,1fr)_5.5rem_7.5rem_2.5rem] items-center gap-4 border-b border-slate-100 px-5 py-2.5 text-left hover:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600"
+                  [attr.aria-label]="'Open ' + c.name">
+            <span class="flex min-w-0 items-center gap-3">
+              <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-indigo-50 text-indigo-600">
+                <app-icon name="building" />
               </span>
-              <span class="font-mono text-xs text-slate-500">#{{ c.id }}</span>
-              <span class="status" [class]="statusClass(c.status)">{{ c.status }}</span>
-              <span class="grid place-items-center text-slate-400">
-                @if (hasProjects(c)) {
-                  <app-icon name="chevron" cls="size-5" />
+              <span class="min-w-0">
+                <span class="block truncate font-semibold text-slate-900">{{ c.name }}</span>
+                @if (c.description) {
+                  <span class="block truncate text-xs text-slate-500">{{ c.description }}</span>
                 }
               </span>
-            </button>
-          } @empty {
-            <div class="px-5 py-14 text-center">
-              @if (page() > 1) {
-                <p class="font-medium text-slate-900">No clients on this page</p>
-                <button type="button" class="btn btn-secondary mt-4" (click)="go(1)">Go to the first page</button>
-              } @else {
-                <p class="font-medium text-slate-900">No clients yet</p>
-                <p class="mt-1 text-sm text-slate-500">Clients added in Memtime show up here.</p>
-              }
-            </div>
-          }
-        </div>
-      </div>
-    }
-  </section>
-} @else {
-  <div class="grid items-start gap-5 md:grid-cols-[260px_minmax(0,1fr)]">
-    <aside class="card p-3 md:sticky md:top-4" aria-label="Where you are">
-      <button type="button" class="flex min-h-10 w-full items-center gap-2 rounded-lg px-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50" (click)="back()">
-        <app-icon name="chevron" cls="size-4 rotate-180" />
-        {{ view() === 'tasks' ? 'Back to projects' : 'All clients' }}
-      </button>
-      <div class="my-2 h-px bg-slate-200"></div>
-      <ul role="tree" aria-label="Current path">
-        <li role="treeitem" aria-expanded="true">
-          <button type="button" (click)="toProjects()"
-                  class="flex min-h-12 w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-slate-50"
-                  [class]="view() === 'projects' ? 'bg-indigo-50' : ''"
-                  [attr.aria-current]="view() === 'projects' ? 'page' : null">
-            <span class="grid size-7 shrink-0 place-items-center rounded-md bg-indigo-50 text-indigo-600">
-              <app-icon name="building" cls="size-4" />
             </span>
-            <span class="min-w-0">
-              <span class="block text-[11px] tracking-wide text-slate-500 uppercase">Client</span>
-              <span class="block truncate font-semibold text-slate-900">{{ clientName() }}</span>
+            <span class="font-mono text-xs text-slate-500">#{{ c.id }}</span>
+            <span class="status" [class]="statusClass(c.status)">{{ c.status }}</span>
+            <span class="grid place-items-center text-slate-400">
+              @if (hasProjects(c)) {
+                <app-icon name="chevron" cls="size-5" />
+              }
             </span>
           </button>
-          @if (view() === 'tasks') {
-            <ul role="group" class="ml-5">
-              <li role="treeitem" aria-selected="true" class="relative pl-[18px]">
-                <span class="absolute top-0 left-0 h-6 w-3.5 rounded-bl-md border-b-2 border-l-2 border-slate-300" aria-hidden="true"></span>
-                <span class="flex min-h-12 items-center gap-2.5 rounded-lg bg-indigo-50 px-2 py-1.5" aria-current="page">
-                  <span class="grid size-7 shrink-0 place-items-center rounded-md bg-sky-50 text-sky-700">
-                    <app-icon name="folder" cls="size-4" />
-                  </span>
-                  <span class="min-w-0">
-                    <span class="block text-[11px] tracking-wide text-slate-500 uppercase">Project</span>
-                    <span class="block truncate font-semibold text-slate-900">{{ projectName() }}</span>
-                  </span>
-                </span>
-              </li>
-            </ul>
-          }
-        </li>
-      </ul>
-    </aside>
-
-    <section class="card min-w-0 overflow-hidden" [attr.aria-label]="view() === 'tasks' ? 'Tasks' : 'Projects'">
-      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-3.5">
-        <h2 class="text-[15px] font-semibold text-slate-900">{{ view() === 'tasks' ? 'Tasks' : 'Projects' }}</h2>
-        @if (state().status === 'loaded') {
-          <span class="text-sm text-slate-500">
-            {{ view() === 'tasks' ? taskRows().length + ' tasks' : projects().length + ' projects' }}
-          </span>
+        } @empty {
+          <div class="px-5 py-14 text-center">
+            @if (page() > 1) {
+              <p class="font-medium text-slate-900">No clients on this page</p>
+              <button type="button" class="btn btn-secondary mt-4" (click)="go(1)">Go to the first page</button>
+            } @else {
+              <p class="font-medium text-slate-900">No clients yet</p>
+              <p class="mt-1 text-sm text-slate-500">Clients added in Memtime show up here.</p>
+            }
+          </div>
         }
       </div>
-
-      @switch (state().status) {
-        @case ('error') {
-          <div class="alert-error m-4 flex flex-wrap items-center justify-between gap-3" role="alert">
-            <span>This list could not be loaded.</span>
-            <button type="button" class="btn btn-secondary" (click)="retry()">Try again</button>
-          </div>
-        }
-        @case ('loading') {
-          <div class="space-y-3 p-5" aria-busy="true">
-            @for (row of [1, 2, 3, 4]; track row) {
-              <div class="h-10 animate-pulse rounded-lg bg-slate-100"></div>
-            }
-          </div>
-        }
-        @default {
-          <div class="overflow-x-auto">
-            @if (view() === 'projects') {
-              <div class="min-w-[520px]">
-                <div class="th grid grid-cols-[minmax(0,1fr)_5.5rem_8rem_2.5rem] gap-4 border-b border-slate-200 bg-slate-50 px-5 py-2.5">
-                  <span>Project</span><span>ID</span><span>Status</span><span></span>
-                </div>
-                @for (p of projects(); track p.id) {
-                  <button type="button" (click)="openProject(p)"
-                          class="grid min-h-15 w-full grid-cols-[minmax(0,1fr)_5.5rem_8rem_2.5rem] items-center gap-4 border-b border-slate-100 px-5 py-2.5 text-left hover:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600"
-                          [attr.aria-label]="'Open ' + p.name">
-                    <span class="flex min-w-0 items-center gap-3">
-                      <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-sky-50 text-sky-700">
-                        <app-icon name="folder" cls="size-[18px]" />
-                      </span>
-                      <span class="truncate font-semibold text-slate-900">{{ p.name }}</span>
-                    </span>
-                    <span class="font-mono text-xs text-slate-500">#{{ p.id }}</span>
-                    <span class="status" [class]="statusClass(p.status)">{{ p.status }}</span>
-                    <span class="grid place-items-center text-slate-400"><app-icon name="chevron" cls="size-5" /></span>
-                  </button>
-                } @empty {
-                  <div class="px-5 py-14 text-center">
-                    <p class="font-medium text-slate-900">No projects for this client yet</p>
-                    <button type="button" class="btn btn-secondary mt-4" (click)="toClients()">Back to all clients</button>
-                  </div>
-                }
-              </div>
-            } @else {
-              <div class="min-w-[560px]">
-                <div class="th grid grid-cols-[minmax(0,1fr)_5.5rem_8rem_7.5rem] gap-4 border-b border-slate-200 bg-slate-50 px-5 py-2.5">
-                  <span>Task</span><span>ID</span><span>Status</span><span></span>
-                </div>
-                @for (row of taskRows(); track row.task.id) {
-                  <div class="grid min-h-14 grid-cols-[minmax(0,1fr)_5.5rem_8rem_7.5rem] items-center gap-4 border-b border-slate-100 px-5 py-2">
-                    <span class="flex min-w-0 items-center gap-2.5" [style.padding-left.px]="row.depth * 24">
-                      @if (row.depth > 0) {
-                        <span class="-mt-2.5 h-3.5 w-3 shrink-0 rounded-bl border-b-2 border-l-2 border-slate-300" aria-hidden="true"></span>
-                      }
-                      <app-icon name="task" cls="size-[18px] shrink-0 text-indigo-500" />
-                      <span class="truncate font-medium text-slate-900">{{ row.task.name }}</span>
-                    </span>
-                    <span class="font-mono text-xs text-slate-500">#{{ row.task.id }}</span>
-                    <span class="status" [class]="statusClass(row.task.status)">{{ row.task.status }}</span>
-                    <a [routerLink]="['/entries/new']" [queryParams]="{ taskId: row.task.id }"
-                       class="inline-flex min-h-9 items-center gap-1.5 justify-self-end rounded-lg border border-indigo-200 bg-white px-3 text-sm font-semibold text-indigo-700 hover:bg-indigo-50"
-                       [attr.aria-label]="'Log time for ' + row.task.name">
-                      <app-icon name="plus" cls="size-3.5" />
-                      Log time
-                    </a>
-                  </div>
-                } @empty {
-                  <div class="px-5 py-14 text-center">
-                    <p class="font-medium text-slate-900">No tasks in this project yet</p>
-                    <button type="button" class="btn btn-secondary mt-4" (click)="toProjects()">Back to projects</button>
-                  </div>
-                }
-              </div>
-            }
-          </div>
-        }
-      }
-    </section>
-  </div>
-}
+    </div>
+  }
+</section>

@@ -1,0 +1,59 @@
+<section class="card min-w-0 overflow-hidden" aria-label="Tasks">
+  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-3.5">
+    <h2 class="text-[15px] font-semibold text-slate-900">Tasks</h2>
+    @if (state().status === 'loaded') {
+      <span class="text-sm text-slate-500">{{ rows().length }} tasks</span>
+    }
+  </div>
+
+  @switch (state().status) {
+    @case ('error') {
+      <div class="alert-error m-4 flex flex-wrap items-center justify-between gap-3" role="alert">
+        <span>This list could not be loaded.</span>
+        <button type="button" class="btn btn-secondary" (click)="retry()">Try again</button>
+      </div>
+    }
+    @case ('loading') {
+      <div class="space-y-3 p-5" aria-busy="true" aria-label="Loading tasks">
+        @for (row of [1, 2, 3, 4]; track row) {
+          <div class="h-10 animate-pulse rounded-lg bg-slate-100"></div>
+        }
+      </div>
+    }
+    @default {
+      <div class="overflow-x-auto">
+        <div class="min-w-[560px]">
+          <div class="th grid grid-cols-[minmax(0,1fr)_5.5rem_8rem_7.5rem] gap-4 border-b border-slate-200 bg-slate-50 px-5 py-2.5">
+            <span>Task</span><span>ID</span><span>Status</span><span></span>
+          </div>
+          @for (row of rows(); track row.task.id) {
+            <div class="grid min-h-14 grid-cols-[minmax(0,1fr)_5.5rem_8rem_7.5rem] items-center gap-4 border-b border-slate-100 px-5 py-2 hover:bg-slate-50">
+              <span class="flex min-w-0 items-center gap-2.5" [style.padding-left.px]="row.depth * 24">
+                @if (row.depth > 0) {
+                  <span class="-mt-2.5 h-3.5 w-3 shrink-0 rounded-bl border-b-2 border-l-2 border-slate-300" aria-hidden="true"></span>
+                }
+                <app-icon name="task" cls="size-[18px] shrink-0 text-indigo-500" />
+                <a [routerLink]="['/tree', clientId(), 'projects', projectId(), 'tasks', row.task.id]"
+                   class="truncate font-medium text-slate-900 hover:text-indigo-700 hover:underline"
+                   [attr.aria-label]="'Open task ' + row.task.name">{{ row.task.name }}</a>
+              </span>
+              <span class="font-mono text-xs text-slate-500">#{{ row.task.id }}</span>
+              <span class="status" [class]="statusClass(row.task.status)">{{ row.task.status }}</span>
+              <a [routerLink]="['/entries/new']" [queryParams]="{ taskId: row.task.id }"
+                 class="inline-flex min-h-9 items-center gap-1.5 justify-self-end rounded-lg border border-indigo-200 bg-white px-3 text-sm font-semibold text-indigo-700 hover:bg-indigo-50"
+                 [attr.aria-label]="'Log time for ' + row.task.name">
+                <app-icon name="plus" cls="size-3.5" />
+                Log time
+              </a>
+            </div>
+          } @empty {
+            <div class="px-5 py-14 text-center">
+              <p class="font-medium text-slate-900">No tasks in this project yet</p>
+              <a [routerLink]="['/tree', clientId()]" class="btn btn-secondary mt-4">Back to projects</a>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  }
+</section>
