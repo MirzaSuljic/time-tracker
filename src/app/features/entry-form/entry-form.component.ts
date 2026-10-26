@@ -3,9 +3,11 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
-import { map } from 'rxjs';
+import { map, take } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { RecentTask, RecentTasks } from '../../core/services/recent-tasks';
+import { ModalService } from '../../core/services/modal.service';
+import { ModalActionButton } from '../../core/models/modal.model';
 import { AppError } from '../../core/interceptors/error-interceptor';
 import { Client } from '../../core/models/client.model';
 import { Project } from '../../core/models/project.model';
@@ -43,6 +45,7 @@ type Field = 'taskId' | 'comment' | 'start' | 'end';
 export class EntryFormComponent implements OnInit {
   private api = inject(ApiService);
   private recentTasks = inject(RecentTasks);
+  private modalService = inject(ModalService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private fb = inject(FormBuilder);
@@ -64,16 +67,14 @@ export class EntryFormComponent implements OnInit {
   saving = signal(false);
   saved = signal<TimeEntry | null>(null);
   savedAction = signal<'created' | 'updated'>('created');
-  error = signal('');
+  loadFailed = signal(false);
   notFound = signal(false);
   createdAt = signal<string | null>(null);
-  deleteArmed = signal(false);
   deleting = signal(false);
 
   clients = signal<Client[]>([]);
   projects = signal<Project[]>([]);
   tasks = signal<Task[]>([]);
-  pickerError = signal('');
   pickerOpen = signal(false);
   manualId = signal(false);
 
@@ -131,7 +132,7 @@ export class EntryFormComponent implements OnInit {
         error: (e: AppError) => {
           this.loadingEntry.set(false);
           if (e.status === 404) this.notFound.set(true);
-          else this.error.set(e.message);
+          else this.loadFailed.set(true);
         },
       });
     }
@@ -147,28 +148,26 @@ export class EntryFormComponent implements OnInit {
     if (this.clients().length) return;
     this.api.getClients().subscribe({
       next: c => this.clients.set(c),
-      error: (e: AppError) => this.pickerError.set(e.message),
+      error: () => undefined,
     });
   }
 
   pickClient(id: string) {
     this.projects.set([]);
     this.tasks.set([]);
-    this.pickerError.set('');
     if (!id) return;
     this.api.getProjects(+id).subscribe({
       next: p => this.projects.set(p),
-      error: (e: AppError) => this.pickerError.set(e.message),
+      error: () => undefined,
     });
   }
 
   pickProject(id: string) {
     this.tasks.set([]);
-    this.pickerError.set('');
     if (!id) return;
     this.api.getTasks(+id).subscribe({
       next: t => this.tasks.set(t),
-      error: (e: AppError) => this.pickerError.set(e.message),
+      error: () => undefined,
     });
   }
 
@@ -196,7 +195,7 @@ export class EntryFormComponent implements OnInit {
   }
 
   close() {
-    if (this.saving() || this.deleting()) return;
+    if (this.saving() || this.deleting() || this.modalService.isOpen) return;
     this.router.navigate(['/entries'], {
       queryParams: { taskId: null },
       queryParamsHandling: 'merge',
@@ -204,29 +203,35 @@ export class EntryFormComponent implements OnInit {
   }
 
   remove() {
-    if (this.entryId === null) return;
-    if (!this.deleteArmed()) {
-      this.deleteArmed.set(true);
-      return;
-    }
-    this.deleting.set(true);
-    this.api.deleteTimeEntry(this.entryId).subscribe({
-      next: () => {
-        this.deleting.set(false);
-        this.close();
-      },
-      error: (e: AppError) => {
-        this.deleting.set(false);
-        this.deleteArmed.set(false);
-        if (e.status === 404) this.notFound.set(true);
-        else this.error.set(e.message);
-      },
+    const id = this.entryId;
+    if (id === null) return;
+    this.modalService.getData({
+      title: `Delete entry #${id}?`,
+      content: 'This entry will be removed. This cannot be undone.',
+      tone: 'info',
+      buttons: [
+        { title: 'Cancel', action: ModalActionButton.Cancel },
+        { title: 'Delete entry', action: ModalActionButton.Confirm, danger: true },
+      ],
+    });
+    this.modalService.open();
+    this.modalService.confirmAction$.pipe(take(1)).subscribe(() => {
+      this.deleting.set(true);
+      this.api.deleteTimeEntry(id).subscribe({
+        next: () => {
+          this.deleting.set(false);
+          this.close();
+        },
+        error: (e: AppError) => {
+          this.deleting.set(false);
+          if (e.status === 404) this.notFound.set(true);
+        },
+      });
     });
   }
 
   submit() {
     this.saved.set(null);
-    this.error.set('');
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -258,7 +263,6 @@ export class EntryFormComponent implements OnInit {
       error: (e: AppError) => {
         this.saving.set(false);
         if (e.status === 404) this.notFound.set(true);
-        else this.error.set(e.message);
       },
     });
   }

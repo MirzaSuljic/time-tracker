@@ -58,6 +58,21 @@ export function flattenTasks(tasks: Task[]): TaskRow[] {
   return rows;
 }
 
+export function pageList(current: number, count: number | null): (number | null)[] {
+  if (count === null) return [];
+  if (count <= 7) return Array.from({ length: count }, (_, i) => i + 1);
+  const wanted = [...new Set([1, count, current - 1, current, current + 1])]
+    .filter(n => n >= 1 && n <= count)
+    .sort((a, b) => a - b);
+  const out: (number | null)[] = [];
+  for (const n of wanted) {
+    const last = out.at(-1);
+    if (typeof last === 'number' && n - last > 1) out.push(n - last === 2 ? last + 1 : null);
+    out.push(n);
+  }
+  return out;
+}
+
 function toId(value: string | null): number | null {
   const n = Number(value);
   return Number.isInteger(n) && n > 0 ? n : null;
@@ -86,6 +101,7 @@ export class TreeComponent {
   sortBy = signal<ClientSortField | null>(null);
   order = signal<SortOrder>('asc');
   hasNext = signal(false);
+  total = signal<number | null>(null);
   clientId = signal<number | null>(null);
   projectId = signal<number | null>(null);
 
@@ -108,9 +124,17 @@ export class TreeComponent {
     return this.projects().find(p => p.id === id)?.name ?? `Project #${id}`;
   });
 
+  pageCount = computed(() => {
+    const total = this.total();
+    return total === null ? null : Math.max(1, Math.ceil(total / this.size()));
+  });
+  pages = computed(() => pageList(this.page(), this.pageCount()));
+
   range = computed(() => {
     const from = (this.page() - 1) * this.size() + 1;
-    return `${from}–${from + this.clients().length - 1}`;
+    const range = `${from}–${from + this.clients().length - 1}`;
+    const total = this.total();
+    return total === null ? range : `${range} of ${total}`;
   });
 
   constructor() {
@@ -223,6 +247,10 @@ export class TreeComponent {
         }),
         fail,
       );
+    }
+
+    if (this.total() === null) {
+      this.api.getClients().subscribe({ next: all => this.total.set(all.length), error: () => undefined });
     }
 
     return this.api.getClientsPage(q.page, q.size, q.sortBy ?? undefined, q.order).pipe(

@@ -21,7 +21,7 @@
 
   @if (error()) {
     <div class="alert-error flex flex-wrap items-center justify-between gap-3" role="alert">
-      <span>{{ error() }}</span>
+      <span>The entries could not be loaded.</span>
       <button type="button" class="btn btn-secondary" (click)="retry()">Try again</button>
     </div>
   }
@@ -123,8 +123,8 @@
                        [attr.aria-label]="'Edit entry #' + e.id" title="Edit">
                       <app-icon name="pencil" cls="size-4" />
                     </a>
-                    <button type="button" (click)="askDelete(e)"
-                            class="inline-grid size-9 place-items-center rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-700"
+                    <button type="button" (click)="askDelete(e)" [disabled]="deleting() === e.id"
+                            class="inline-grid size-9 place-items-center rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-40"
                             [attr.aria-label]="'Delete entry #' + e.id" title="Delete">
                       <app-icon name="trash" cls="size-4" />
                     </button>
@@ -160,26 +160,5 @@
     }
   </section>
 </div>
-
-@if (toDelete(); as entry) {
-  <div class="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4 backdrop-blur-sm" (click)="cancelDelete()">
-    <div role="alertdialog" aria-modal="true" aria-labelledby="delete-title" aria-describedby="delete-text"
-         class="card w-full max-w-sm p-6" (click)="$event.stopPropagation()">
-      <h2 id="delete-title" class="text-lg font-semibold text-slate-900">Delete entry #{{ entry.id }}?</h2>
-      <p id="delete-text" class="mt-2 text-sm text-slate-600">
-        "{{ entry.comment }}" ({{ duration(entry) }}) will be removed. This cannot be undone.
-      </p>
-      @if (deleteError()) {
-        <p class="field-error mt-3" role="alert">{{ deleteError() }}</p>
-      }
-      <div class="mt-6 flex justify-end gap-3">
-        <button type="button" class="btn btn-secondary" (click)="cancelDelete()" [disabled]="deleting()">Cancel</button>
-        <button type="button" class="btn btn-danger" (click)="confirmDelete()" [disabled]="deleting()">
-          {{ deleting() ? 'Deleting…' : 'Delete entry' }}
-        </button>
-      </div>
-    </div>
-  </div>
-}
 
 <router-outlet />

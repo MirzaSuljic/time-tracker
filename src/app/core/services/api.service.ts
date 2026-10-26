@@ -1,10 +1,11 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { EMPTY, Observable, Subject, catchError, expand, map, reduce, shareReplay, tap, throwError } from 'rxjs';
 import { Client } from '../models/client.model';
 import { Project } from '../models/project.model';
 import { Task } from '../models/task.model';
 import { TimeEntry, TimeEntryInput } from '../models/time-entry.model';
+import { SILENT_ERRORS } from '../interceptors/error-interceptor';
 
 const BASE = '/api/v1';
 
@@ -12,6 +13,7 @@ export type SortOrder = 'asc' | 'desc';
 export type ClientSortField = 'name' | 'id' | 'status';
 export type EntrySortField = 'id' | 'taskId' | 'comment' | 'start' | 'end' | 'createdAt';
 const PAGE_SIZE = 50;
+const silent = () => ({ context: new HttpContext().set(SILENT_ERRORS, true) });
 
 interface TaskInfo {
   name: string;
@@ -68,7 +70,7 @@ export class ApiService {
 
   getClient(id: number) {
     return this.cached(`client:${id}`, () =>
-      this.http.get<Client>(`${BASE}/clients/${id}`).pipe(tap(c => this.rememberClients([c]))),
+      this.http.get<Client>(`${BASE}/clients/${id}`, silent()).pipe(tap(c => this.rememberClients([c]))),
     );
   }
 
@@ -95,7 +97,7 @@ export class ApiService {
 
   getTask(id: number) {
     return this.cached(`task:${id}`, () =>
-      this.http.get<Task>(`${BASE}/tasks/${id}`).pipe(tap(task => this.rememberTasks([task]))),
+      this.http.get<Task>(`${BASE}/tasks/${id}`, silent()).pipe(tap(task => this.rememberTasks([task]))),
     );
   }
 

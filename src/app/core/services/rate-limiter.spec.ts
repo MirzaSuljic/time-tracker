@@ -10,3 +10,16 @@ describe('RateLimiter', () => {
     expect(limiter.remaining()).toBe(0);
   });
 });
+
+describe('RateLimiter with server headers', () => {
+  it('shows the server count and waits for the reset when the server says 0 are left', () => {
+    const limiter = TestBed.inject(RateLimiter);
+    limiter.syncFromServer(11, 45);
+    expect(limiter.remaining()).toBe(11);
+
+    limiter.syncFromServer(0, 30);
+    const wait = limiter.reserve();
+    expect(wait).toBeGreaterThan(29_000);
+    expect(wait).toBeLessThan(31_000);
+  });
+});

@@ -5,7 +5,6 @@ import { RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { RecentTasks } from '../../core/services/recent-tasks';
-import { AppError } from '../../core/interceptors/error-interceptor';
 import { formatDuration, nowTime, timeMs, todayAt } from '../../core/utils/dates';
 import { IconComponent } from '../../core/ui/icon.component';
 
@@ -44,7 +43,6 @@ export class QuickAddComponent {
   );
 
   saving = signal(false);
-  error = signal('');
   notice = signal('');
   submitted = signal(false);
 
@@ -87,7 +85,6 @@ export class QuickAddComponent {
 
   submit() {
     this.submitted.set(true);
-    this.error.set('');
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -109,10 +106,7 @@ export class QuickAddComponent {
           clearTimeout(this.noticeTimer);
           this.noticeTimer = setTimeout(() => this.notice.set(''), 5000);
         },
-        error: (e: AppError) => {
-          this.saving.set(false);
-          this.error.set(e.message);
-        },
+        error: () => this.saving.set(false),
       });
   }
 }

@@ -2,10 +2,11 @@ import { Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { RATE_LIMIT, RateLimiter } from './core/services/rate-limiter';
 import { IconComponent } from './core/ui/icon.component';
+import { ModalComponent } from './core/ui/modal.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent, ModalComponent],
   templateUrl: './app.html',
 })
 export class App {

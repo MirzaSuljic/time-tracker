@@ -9,6 +9,8 @@ export class RateLimiter {
   private waitUntil = 0;
   private countdown?: ReturnType<typeof setInterval>;
   private refreshTimer?: ReturnType<typeof setTimeout>;
+  private serverRemaining: number | null = null;
+  private serverResetAt = 0;
 
   readonly waitSeconds = signal(0);
   readonly remaining = signal(RATE_LIMIT);
@@ -16,13 +18,33 @@ export class RateLimiter {
   reserve(): number {
     const now = Date.now();
     this.prune(now);
-    const sendAt = this.sendTimes.length >= RATE_LIMIT
+    const localAt = this.sendTimes.length >= RATE_LIMIT
       ? Math.max(now, this.sendTimes[this.sendTimes.length - RATE_LIMIT] + WINDOW_MS + 50)
       : now;
+
+    let serverAt = now;
+    if (this.serverKnown(now)) {
+      if (this.serverRemaining! > 0) this.serverRemaining!--;
+      else serverAt = this.serverResetAt + 50;
+    }
+
+    const sendAt = Math.max(localAt, serverAt);
     this.sendTimes.push(sendAt);
     this.noteWait(sendAt - now);
     this.refreshRemaining();
     return sendAt - now;
+  }
+
+  syncFromServer(remaining: number, resetSeconds: number) {
+    if (!Number.isFinite(remaining) || !Number.isFinite(resetSeconds)) return;
+    this.serverRemaining = Math.max(0, remaining);
+    this.serverResetAt = Date.now() + resetSeconds * 1000;
+    this.refreshRemaining();
+  }
+
+  msUntilReset(): number | null {
+    const now = Date.now();
+    return this.serverResetAt > now ? this.serverResetAt - now : null;
   }
 
   noteWait(ms: number): void {
@@ -41,6 +63,11 @@ export class RateLimiter {
     this.countdown = setInterval(tick, 1000);
   }
 
+  private serverKnown(now: number) {
+    if (this.serverRemaining !== null && now >= this.serverResetAt) this.serverRemaining = null;
+    return this.serverRemaining !== null;
+  }
+
   private prune(now: number) {
     while (this.sendTimes.length && this.sendTimes[0] <= now - WINDOW_MS) {
       this.sendTimes.shift();
@@ -50,10 +77,11 @@ export class RateLimiter {
   private refreshRemaining() {
     const now = Date.now();
     this.prune(now);
-    this.remaining.set(Math.max(0, RATE_LIMIT - this.sendTimes.length));
+    const local = Math.max(0, RATE_LIMIT - this.sendTimes.length);
+    this.remaining.set(this.serverKnown(now) ? Math.min(local, this.serverRemaining!) : local);
     clearTimeout(this.refreshTimer);
-    if (this.sendTimes.length) {
-      this.refreshTimer = setTimeout(() => this.refreshRemaining(), this.sendTimes[0] + WINDOW_MS - now + 10);
-    }
+    const next = [this.sendTimes[0] !== undefined ? this.sendTimes[0] + WINDOW_MS : Infinity, this.serverRemaining !== null ? this.serverResetAt : Infinity];
+    const at = Math.min(...next);
+    if (Number.isFinite(at)) this.refreshTimer = setTimeout(() => this.refreshRemaining(), Math.max(0, at - now) + 10);
   }
 }

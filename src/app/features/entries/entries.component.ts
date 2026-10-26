@@ -2,9 +2,11 @@ import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { DatePipe } from '@angular/common';
-import { EMPTY, Subject, catchError, combineLatest, map, merge, startWith, switchMap, tap } from 'rxjs';
+import { EMPTY, Subject, catchError, combineLatest, map, merge, startWith, switchMap, take, tap } from 'rxjs';
 import { ApiService, EntrySortField, SortOrder } from '../../core/services/api.service';
 import { RecentTasks } from '../../core/services/recent-tasks';
+import { ModalService } from '../../core/services/modal.service';
+import { ModalActionButton } from '../../core/models/modal.model';
 import { AppError } from '../../core/interceptors/error-interceptor';
 import { TimeEntry } from '../../core/models/time-entry.model';
 import { dayKey, dayLabel, formatDuration } from '../../core/utils/dates';
@@ -42,11 +44,11 @@ export function groupByDay(entries: TimeEntry[]): DayGroup[] {
   selector: 'app-entries',
   imports: [DatePipe, RouterLink, RouterOutlet, IconComponent, QuickAddComponent],
   templateUrl: './entries.component.html',
-  host: { '(document:keydown.escape)': 'cancelDelete()' },
 })
 export class EntriesComponent {
   private api = inject(ApiService);
   private recentTasks = inject(RecentTasks);
+  private modalService = inject(ModalService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private reload$ = new Subject<void>();
@@ -71,9 +73,7 @@ export class EntriesComponent {
     { value: 'comment', label: 'Comment' },
   ];
 
-  toDelete = signal<TimeEntry | null>(null);
-  deleting = signal(false);
-  deleteError = signal('');
+  deleting = signal<number | null>(null);
   notice = signal('');
 
   groups = computed(() => groupByDay(this.items()));
@@ -125,11 +125,11 @@ export class EntriesComponent {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.noticeTimer));
   }
 
-  taskName(taskId: number) {
+  taskName(taskId: number): string | null {
     return this.api.taskNames()[taskId] ?? this.recentById().get(taskId)?.name ?? null;
   }
 
-  taskPath(taskId: number) {
+  taskPath(taskId: number): string | null {
     return this.api.taskPath(taskId) ?? this.recentById().get(taskId)?.path ?? null;
   }
 
@@ -160,28 +160,27 @@ export class EntriesComponent {
   }
 
   askDelete(entry: TimeEntry) {
-    this.deleteError.set('');
-    this.toDelete.set(entry);
+    this.modalService.getData({
+      title: `Delete entry #${entry.id}?`,
+      content: `"${entry.comment}" (${this.duration(entry)}) will be removed. This cannot be undone.`,
+      tone: 'info',
+      buttons: [
+        { title: 'Cancel', action: ModalActionButton.Cancel },
+        { title: 'Delete entry', action: ModalActionButton.Confirm, danger: true },
+      ],
+    });
+    this.modalService.open();
+    this.modalService.confirmAction$.pipe(take(1)).subscribe(() => this.remove(entry));
   }
 
-  cancelDelete() {
-    if (!this.deleting()) this.toDelete.set(null);
-  }
-
-  confirmDelete() {
-    const entry = this.toDelete();
-    if (!entry) return;
-    this.deleting.set(true);
+  private remove(entry: TimeEntry) {
+    this.deleting.set(entry.id);
     this.api.deleteTimeEntry(entry.id).subscribe({
       next: () => {
-        this.deleting.set(false);
-        this.toDelete.set(null);
+        this.deleting.set(null);
         this.showNotice(`Entry #${entry.id} was deleted.`);
       },
-      error: (e: AppError) => {
-        this.deleting.set(false);
-        this.deleteError.set(e.message);
-      },
+      error: () => this.deleting.set(null),
     });
   }
 

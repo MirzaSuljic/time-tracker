@@ -43,7 +43,15 @@
         <button type="button" class="icon-btn" (click)="go(page() - 1)" [disabled]="page() === 1 || state().status === 'loading'" aria-label="Previous page">
           <app-icon name="chevron" cls="size-4 rotate-180" />
         </button>
-        <span class="grid h-9 min-w-9 place-items-center rounded-lg bg-indigo-600 px-2 text-sm font-semibold text-white tabular-nums" aria-current="page">{{ page() }}</span>
+        @for (p of pages().length ? pages() : [page()]; track $index) {
+          @if (p === null) {
+            <span class="px-1 text-slate-400" aria-hidden="true">…</span>
+          } @else if (p === page()) {
+            <span class="grid h-9 min-w-9 place-items-center rounded-lg bg-indigo-600 px-2 text-sm font-semibold text-white tabular-nums" aria-current="page">{{ p }}</span>
+          } @else {
+            <button type="button" class="icon-btn text-sm font-medium tabular-nums" (click)="go(p)" [disabled]="state().status === 'loading'" [attr.aria-label]="'Page ' + p">{{ p }}</button>
+          }
+        }
         <button type="button" class="icon-btn" (click)="go(page() + 1)" [disabled]="!hasNext() || state().status === 'loading'" aria-label="Next page">
           <app-icon name="chevron" cls="size-4" />
         </button>
@@ -57,7 +65,7 @@
 
     @if (state().status === 'error') {
       <div class="alert-error m-4 flex flex-wrap items-center justify-between gap-3" role="alert">
-        <span>{{ state().message }}</span>
+        <span>This list could not be loaded.</span>
         <button type="button" class="btn btn-secondary" (click)="retry()">Try again</button>
       </div>
     } @else if (state().status === 'loading' && clients().length === 0) {
@@ -168,7 +176,7 @@
       @switch (state().status) {
         @case ('error') {
           <div class="alert-error m-4 flex flex-wrap items-center justify-between gap-3" role="alert">
-            <span>{{ state().message }}</span>
+            <span>This list could not be loaded.</span>
             <button type="button" class="btn btn-secondary" (click)="retry()">Try again</button>
           </div>
         }
