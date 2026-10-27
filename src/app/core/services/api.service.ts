@@ -6,6 +6,7 @@ import { Project } from '../models/project.model';
 import { Task } from '../models/task.model';
 import { TimeEntry, TimeEntryInput } from '../models/time-entry.model';
 import { SILENT_ERRORS } from '../interceptors/error-interceptor';
+import { SKIP_SPINNER } from '../interceptors/loading-interceptor';
 
 const BASE = '/api/v1';
 
@@ -14,7 +15,7 @@ export type ClientSortField = 'name' | 'id' | 'status';
 export type EntrySortField = 'id' | 'taskId' | 'comment' | 'start' | 'end' | 'createdAt';
 const PAGE_SIZE = 50;
 const WEEK_SCAN_LIMIT = 500;
-const silent = () => ({ context: new HttpContext().set(SILENT_ERRORS, true) });
+const silent = () => ({ context: new HttpContext().set(SILENT_ERRORS, true).set(SKIP_SPINNER, true) });
 
 export interface WeekEntries {
   items: TimeEntry[];
@@ -180,6 +181,16 @@ export class ApiService {
 
   deleteTimeEntry(id: number) {
     return this.http.delete(`${BASE}/time-entries/${id}`).pipe(tap(() => this.entriesUpdated()));
+  }
+
+  clear() {
+    this.cache.clear();
+    this.clientInfo.set({});
+    this.clientData.set({});
+    this.projectInfo.set({});
+    this.taskInfo.set({});
+    this.projectCounts.set({});
+    this.entries.set([]);
   }
 
   private entriesUpdated() {

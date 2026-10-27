@@ -1,6 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { AuthService, DEMO_ACCOUNTS, initials } from './auth.service';
+import { ApiService } from './api.service';
+import { RecentTasks } from './recent-tasks';
 
 describe('AuthService', () => {
   let auth: AuthService;
@@ -8,7 +12,7 @@ describe('AuthService', () => {
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
     auth = TestBed.inject(AuthService);
   });
 
@@ -44,6 +48,25 @@ describe('AuthService', () => {
     auth.logout();
     expect(auth.isLoggedIn()).toBe(false);
     expect(localStorage.getItem('time-tracker.session')).toBeNull();
+  });
+
+  it('forgets cached API data and recent tasks on sign out', () => {
+    const api = TestBed.inject(ApiService);
+    const http = TestBed.inject(HttpTestingController);
+    const recent = TestBed.inject(RecentTasks);
+    recent.add({ id: 1, name: 'Task 1', path: null });
+
+    api.getClients().subscribe();
+    http.expectOne(r => r.url === '/api/v1/clients').flush([{ id: 1, name: 'Client 1', description: '', status: 'active' }]);
+    expect(api.clientNames()[1]).toBe('Client 1');
+
+    auth.logout();
+    expect(api.clientNames()).toEqual({});
+    expect(recent.items()).toEqual([]);
+
+    api.getClients().subscribe();
+    http.expectOne(r => r.url === '/api/v1/clients').flush([]);
+    http.verify();
   });
 
   it('builds initials from the name', () => {

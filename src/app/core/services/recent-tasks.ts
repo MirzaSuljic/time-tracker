@@ -23,6 +23,15 @@ export class RecentTasks {
     }
   }
 
+  clear() {
+    this.items.set([]);
+    try {
+      localStorage.removeItem(KEY);
+    } catch {
+      return;
+    }
+  }
+
   private read(): RecentTask[] {
     try {
       const parsed: unknown = JSON.parse(localStorage.getItem(KEY) ?? '[]');

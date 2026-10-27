@@ -68,11 +68,11 @@ Delete (`DELETE /time-entries/:id`) is not required by the task; it is included 
 src/app/
   core/
     guards/        authGuard (signed in only), guestGuard (login page only when signed out)
-    interceptors/  error-interceptor (status → modal), rate-limit-interceptor (queue + 429 retry)
-    services/      api.service (all endpoints, cache), auth.service (demo login, session), rate-limiter (15 requests / 60 s), modal.service, recent-tasks
+    interceptors/  error-interceptor (status → modal), rate-limit-interceptor (queue + 429 retry), loading-interceptor (global spinner)
+    services/      api.service (all endpoints, cache), auth.service (demo login, session), rate-limiter (15 requests / 60 s), modal.service, spinner.service, recent-tasks
     models/        Client, Project, Task, TimeEntry
     utils/         dates (ISO 8601 <-> local time, durations)
-    ui/            icon component, modal component
+    ui/            icon component, modal component, spinner component
   features/
     tree/              Task 1, one folder per component, plus tree-utils (shared helpers)
       tree.component   app-tree: clients list with paging and sorting
@@ -97,7 +97,8 @@ src/app/
 - **Week view.** The API has no date filter, so the week is read with `sortBy=start&order=desc` in pages of 50 until an entry starts before Monday (usually one or two requests, at most 500 entries). Weeks are cached and refreshed after any create, update or delete. Blocks are laid out per day: overlapping entries share the column in lanes and get an orange ring, and gaps of 15 minutes or more between entries are shown as dashed boxes. Clicking a gap or an empty slot opens the existing entry dialog with `start` and `end` filled in from the URL, so there is one form, one set of validation and one error handling for both views. The week and the view live in the URL.
 - **Timesheet.** Entries are grouped by day with a daily total. The task column shows the task name and its client and project when known, next to the task ID.
 - **Transparency about the limit.** The header shows how many requests are left this minute, taken from the server's `RateLimit-Remaining` header.
-- **Demo login.** The Memtime API has no users or login endpoint, only one shared key. `AuthService` checks the email and password against a hardcoded demo account (`DEMO_ACCOUNTS`), keeps the session in a signal and in `localStorage` ("Keep me signed in") or `sessionStorage`, and exposes `user`, `initials` and `isLoggedIn`. `authGuard` protects every screen and sends signed-out users to `/login?returnUrl=…`; after signing in they return there (only in-app paths are accepted). The header shows the signed-in user with a menu to sign out. Replacing the demo check with a real backend call only changes `AuthService.login`.
+- **Demo login.** The Memtime API has no users or login endpoint, only one shared key. `AuthService` checks the email and password against a hardcoded demo account (`DEMO_ACCOUNTS`), keeps the session in a signal and in `localStorage` ("Keep me signed in") or `sessionStorage`, and exposes `user`, `initials` and `isLoggedIn`. `authGuard` protects every screen and sends signed-out users to `/login?returnUrl=…`; after signing in they return there (only in-app paths are accepted). The header shows the signed-in user with a menu to sign out. Signing out also clears everything cached for that user: the API cache in `ApiService` (clients, projects, tasks, entries) and the recent tasks, so the next sign-in loads fresh data from the API. Replacing the demo check with a real backend call only changes `AuthService.login`.
+- **Global spinner.** `loadingInterceptor` counts requests in flight in `SpinnerService`; `<app-spinner>` in the app shell shows a small "Loading…" overlay while any request runs. It appears only after 250 ms, so quick requests never flash it. The interceptor sits inside the rate limiter, so time spent waiting in the queue shows the countdown banner, not the spinner. Background name lookups are marked `SKIP_SPINNER` and do not show it.
 - **One modal for everything.** `ModalService` (`getData`, `open`, `confirm`, `close`, `confirmAction$`) drives a single `<app-modal>` in the app shell. The error interceptor uses it for every failed request, and delete confirmations use it too. A second modal never opens over the first. Background lookups that only fetch a name for display are marked `SILENT_ERRORS` and do not interrupt the user.
 - **Errors per level.** Each level of Clients & projects, and the timesheet, keeps a "Try again" button where the data failed to load; the list keeps working after a failed request.
 - **Dialog with its own URL.** The entry form opens centred above the list, with the list blurred behind it, but `/entries/5/edit` works on its own, so the back button, refresh and links behave as expected. Esc and a click outside close it.
@@ -117,6 +118,7 @@ src/app/
 - `endAfterStart` and `findOverlap`: end must be after start; overlaps are found, back-to-back entries are not.
 - `errorInterceptor` and `ModalService`: each status gets its title and the server message, silent requests stay quiet, modals do not stack, Confirm and Cancel behave as expected.
 - `AuthService`, `authGuard`, `guestGuard`, `safeReturnUrl`: demo sign-in, wrong password, remember me, sign out, redirects and safe return URLs.
+- `SpinnerService` and `loadingInterceptor`: the spinner waits 250 ms, stays until the last request is done, also after an error, and ignores background requests.
 - Each component is created in a test.
 
 There are no end-to-end tests yet (see below).

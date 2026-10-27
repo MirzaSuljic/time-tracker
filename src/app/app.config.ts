@@ -5,11 +5,12 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { routes } from './app.routes';
 import { errorInterceptor } from './core/interceptors/error-interceptor';
 import { rateLimitInterceptor } from './core/interceptors/rate-limit-interceptor';
+import { loadingInterceptor } from './core/interceptors/loading-interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
-    provideHttpClient(withInterceptors([errorInterceptor, rateLimitInterceptor])),
+    provideHttpClient(withInterceptors([errorInterceptor, rateLimitInterceptor, loadingInterceptor])),
   ],
 };

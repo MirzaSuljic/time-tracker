@@ -1,6 +1,8 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, map, switchMap, throwError, timer } from 'rxjs';
 import { Session, User } from '../models/user.model';
+import { ApiService } from './api.service';
+import { RecentTasks } from './recent-tasks';
 
 interface DemoAccount extends User {
   password: string;
@@ -24,6 +26,8 @@ export function initials(name: string): string {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private api = inject(ApiService);
+  private recentTasks = inject(RecentTasks);
   private readonly session = signal<Session | null>(this.restore());
 
   readonly user = computed(() => this.session()?.user ?? null);
@@ -58,6 +62,8 @@ export class AuthService {
   logout() {
     this.session.set(null);
     this.clearStorage();
+    this.api.clear();
+    this.recentTasks.clear();
   }
 
   private clearStorage() {

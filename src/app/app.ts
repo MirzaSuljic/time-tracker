@@ -4,10 +4,11 @@ import { RATE_LIMIT, RateLimiter } from './core/services/rate-limiter';
 import { AuthService } from './core/services/auth.service';
 import { IconComponent } from './core/ui/icon.component';
 import { ModalComponent } from './core/ui/modal.component';
+import { SpinnerComponent } from './core/ui/spinner.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent, ModalComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent, ModalComponent, SpinnerComponent],
   templateUrl: './app.html',
   host: {
     '(document:click)': 'closeMenuOnOutsideClick($event)',
