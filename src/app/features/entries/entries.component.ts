@@ -12,8 +12,11 @@ import { TimeEntry } from '../../core/models/time-entry.model';
 import { dayKey, dayLabel, formatDuration } from '../../core/utils/dates';
 import { IconComponent } from '../../core/ui/icon.component';
 import { QuickAddComponent } from './quick-add.component';
+import { WeekViewComponent } from './week-view/week-view.component';
 
 const SIZES = [10, 25, 50];
+
+export type EntriesView = 'list' | 'week';
 const SORT_FIELDS: EntrySortField[] = ['id', 'taskId', 'comment', 'start', 'end', 'createdAt'];
 
 export interface DayGroup {
@@ -42,7 +45,7 @@ export function groupByDay(entries: TimeEntry[]): DayGroup[] {
 
 @Component({
   selector: 'app-entries',
-  imports: [DatePipe, RouterLink, RouterOutlet, IconComponent, QuickAddComponent],
+  imports: [DatePipe, RouterLink, RouterOutlet, IconComponent, QuickAddComponent, WeekViewComponent],
   templateUrl: './entries.component.html',
 })
 export class EntriesComponent {
@@ -56,6 +59,7 @@ export class EntriesComponent {
 
   readonly sizes = SIZES;
 
+  view = signal<EntriesView>('list');
   items = signal<TimeEntry[]>([]);
   hasNext = signal(false);
   loading = signal(true);
@@ -92,12 +96,14 @@ export class EntriesComponent {
     combineLatest([this.route.queryParamMap, refresh$])
       .pipe(
         map(([q]) => ({
+          view: (q.get('view') === 'week' ? 'week' : 'list') as EntriesView,
           page: Math.max(1, Number(q.get('page')) || 1),
           size: SIZES.includes(Number(q.get('size'))) ? Number(q.get('size')) : 10,
           sortBy: SORT_FIELDS.find(f => f === q.get('sortBy')) ?? null,
           order: (q.get('order') === 'desc' ? 'desc' : 'asc') as SortOrder,
         })),
-        tap(({ page, size, sortBy, order }) => {
+        tap(({ view, page, size, sortBy, order }) => {
+          this.view.set(view);
           this.page.set(page);
           this.size.set(size);
           this.sortBy.set(sortBy);
@@ -105,15 +111,19 @@ export class EntriesComponent {
           this.loading.set(true);
           this.error.set('');
         }),
-        switchMap(({ page, size, sortBy, order }) =>
-          this.api.getTimeEntries(page, size, sortBy ?? undefined, order).pipe(
+        switchMap(({ view, page, size, sortBy, order }) => {
+          if (view === 'week') {
+            this.loading.set(false);
+            return EMPTY;
+          }
+          return this.api.getTimeEntries(page, size, sortBy ?? undefined, order).pipe(
             catchError((e: AppError) => {
               this.error.set(e.message);
               this.loading.set(false);
               return EMPTY;
             }),
-          ),
-        ),
+          );
+        }),
         takeUntilDestroyed(),
       )
       .subscribe(result => {
@@ -149,6 +159,12 @@ export class EntriesComponent {
   setOrder(value: string) {
     const order: SortOrder = value === 'desc' ? 'desc' : 'asc';
     this.navigate({ page: 1, size: this.size(), sortBy: this.sortBy(), order });
+  }
+
+  setView(view: EntriesView) {
+    if (view === this.view()) return;
+    if (view === 'week') this.router.navigate([], { relativeTo: this.route, queryParams: { view: 'week' } });
+    else this.navigate({ page: 1, size: this.size(), sortBy: this.sortBy(), order: this.order() });
   }
 
   retry() {

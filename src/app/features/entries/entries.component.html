@@ -3,10 +3,26 @@
     <h1 class="text-2xl font-bold tracking-tight text-slate-900">Timesheet</h1>
     <p class="mt-1 text-sm text-slate-600">Log what you worked on. Each entry is saved to Memtime right away.</p>
   </div>
-  <a [routerLink]="['new']" queryParamsHandling="preserve" class="btn btn-secondary">
-    <app-icon name="plus" cls="size-4" />
-    New entry for another day
-  </a>
+  <div class="flex flex-wrap items-center gap-3">
+    <div class="flex rounded-lg bg-slate-200/70 p-1" role="group" aria-label="View">
+      <button type="button" (click)="setView('list')" [attr.aria-pressed]="view() === 'list'"
+              class="flex min-h-9 items-center gap-1.5 rounded-md px-3 text-sm font-medium"
+              [class]="view() === 'list' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'">
+        <app-icon name="list" cls="size-4" />
+        List
+      </button>
+      <button type="button" (click)="setView('week')" [attr.aria-pressed]="view() === 'week'"
+              class="flex min-h-9 items-center gap-1.5 rounded-md px-3 text-sm font-medium"
+              [class]="view() === 'week' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'">
+        <app-icon name="calendar" cls="size-4" />
+        Week
+      </button>
+    </div>
+    <a [routerLink]="['new']" queryParamsHandling="preserve" class="btn btn-secondary">
+      <app-icon name="plus" cls="size-4" />
+      New entry for another day
+    </a>
+  </div>
 </div>
 
 <div class="space-y-6">
@@ -19,146 +35,150 @@
     </div>
   }
 
-  @if (error()) {
-    <div class="alert-error flex flex-wrap items-center justify-between gap-3" role="alert">
-      <span>The entries could not be loaded.</span>
-      <button type="button" class="btn btn-secondary" (click)="retry()">Try again</button>
-    </div>
-  }
-
-  <section class="card overflow-hidden" aria-labelledby="entries-title">
-    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
-      <div class="flex flex-wrap items-center gap-3">
-        <h2 id="entries-title" class="mr-2 text-sm font-semibold text-slate-900">Entries</h2>
-        <label class="flex items-center gap-2 text-sm text-slate-600">
-          Sort by
-          <select class="input w-auto py-1.5" (change)="setSortBy($any($event.target).value)">
-            <option value="" [selected]="!sortBy()">Default</option>
-            @for (o of sortOptions; track o.value) {
-              <option [value]="o.value" [selected]="o.value === sortBy()">{{ o.label }}</option>
-            }
-          </select>
-        </label>
-        <label class="flex items-center gap-2 text-sm text-slate-600">
-          Order
-          <select class="input w-auto py-1.5" (change)="setOrder($any($event.target).value)">
-            <option value="asc" [selected]="order() === 'asc'">Ascending</option>
-            <option value="desc" [selected]="order() === 'desc'">Descending</option>
-          </select>
-        </label>
+  @if (view() === 'week') {
+    <app-week-view />
+  } @else {
+    @if (error()) {
+      <div class="alert-error flex flex-wrap items-center justify-between gap-3" role="alert">
+        <span>The entries could not be loaded.</span>
+        <button type="button" class="btn btn-secondary" (click)="retry()">Try again</button>
       </div>
-      <nav class="flex flex-wrap items-center gap-2" aria-label="Entries pagination">
-        @if (items().length) {
-          <span class="mr-1 text-sm text-slate-500 tabular-nums" aria-live="polite">{{ range() }} · {{ pageTotal() }}</span>
-        }
-        <button type="button" class="icon-btn" (click)="go(page() - 1)" [disabled]="page() === 1 || loading()" aria-label="Previous page">
-          <app-icon name="chevron" cls="size-4 rotate-180" />
-        </button>
-        <span class="grid h-9 min-w-9 place-items-center rounded-lg bg-indigo-600 px-2 text-sm font-semibold text-white tabular-nums" aria-current="page">{{ page() }}</span>
-        <button type="button" class="icon-btn" (click)="go(page() + 1)" [disabled]="!hasNext() || loading()" aria-label="Next page">
-          <app-icon name="chevron" cls="size-4" />
-        </button>
-        <select class="input ml-1 w-auto py-1.5" aria-label="Entries per page" (change)="go(1, +$any($event.target).value)">
-          @for (s of sizes; track s) {
-            <option [value]="s" [selected]="s === size()">{{ s }} per page</option>
-          }
-        </select>
-      </nav>
-    </div>
+    }
 
-    <div class="overflow-x-auto">
-      <table class="min-w-[960px] w-full text-sm transition-opacity"
-             [class]="loading() && items().length > 0 ? 'opacity-60' : ''" [attr.aria-busy]="loading()">
-        <thead class="th border-b border-slate-200 bg-slate-50 text-left">
-          <tr>
-            <th scope="col" class="px-5 py-2.5">Start</th>
-            <th scope="col" class="px-3 py-2.5">End</th>
-            <th scope="col" class="px-3 py-2.5">Duration</th>
-            <th scope="col" class="px-3 py-2.5">Task</th>
-            <th scope="col" class="px-3 py-2.5">Comment</th>
-            <th scope="col" class="px-3 py-2.5">ID</th>
-            <th scope="col" class="px-3 py-2.5">Created at</th>
-            <th scope="col" class="px-5 py-2.5"><span class="sr-only">Actions</span></th>
-          </tr>
-        </thead>
-        @if (loading() && items().length === 0) {
-          <tbody>
-            @for (row of [1, 2, 3, 4, 5]; track row) {
-              <tr><td colspan="8" class="px-5 py-3"><div class="h-6 animate-pulse rounded bg-slate-100"></div></td></tr>
+    <section class="card overflow-hidden" aria-labelledby="entries-title">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
+        <div class="flex flex-wrap items-center gap-3">
+          <h2 id="entries-title" class="mr-2 text-sm font-semibold text-slate-900">Entries</h2>
+          <label class="flex items-center gap-2 text-sm text-slate-600">
+            Sort by
+            <select class="input w-auto py-1.5" (change)="setSortBy($any($event.target).value)">
+              <option value="" [selected]="!sortBy()">Default</option>
+              @for (o of sortOptions; track o.value) {
+                <option [value]="o.value" [selected]="o.value === sortBy()">{{ o.label }}</option>
+              }
+            </select>
+          </label>
+          <label class="flex items-center gap-2 text-sm text-slate-600">
+            Order
+            <select class="input w-auto py-1.5" (change)="setOrder($any($event.target).value)">
+              <option value="asc" [selected]="order() === 'asc'">Ascending</option>
+              <option value="desc" [selected]="order() === 'desc'">Descending</option>
+            </select>
+          </label>
+        </div>
+        <nav class="flex flex-wrap items-center gap-2" aria-label="Entries pagination">
+          @if (items().length) {
+            <span class="mr-1 text-sm text-slate-500 tabular-nums" aria-live="polite">{{ range() }} · {{ pageTotal() }}</span>
+          }
+          <button type="button" class="icon-btn" (click)="go(page() - 1)" [disabled]="page() === 1 || loading()" aria-label="Previous page">
+            <app-icon name="chevron" cls="size-4 rotate-180" />
+          </button>
+          <span class="grid h-9 min-w-9 place-items-center rounded-lg bg-indigo-600 px-2 text-sm font-semibold text-white tabular-nums" aria-current="page">{{ page() }}</span>
+          <button type="button" class="icon-btn" (click)="go(page() + 1)" [disabled]="!hasNext() || loading()" aria-label="Next page">
+            <app-icon name="chevron" cls="size-4" />
+          </button>
+          <select class="input ml-1 w-auto py-1.5" aria-label="Entries per page" (change)="go(1, +$any($event.target).value)">
+            @for (s of sizes; track s) {
+              <option [value]="s" [selected]="s === size()">{{ s }} per page</option>
             }
-          </tbody>
-        } @else {
-          @for (g of groups(); track g.key + $index) {
+          </select>
+        </nav>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="min-w-[960px] w-full text-sm transition-opacity"
+               [class]="loading() && items().length > 0 ? 'opacity-60' : ''" [attr.aria-busy]="loading()">
+          <thead class="th border-b border-slate-200 bg-slate-50 text-left">
+            <tr>
+              <th scope="col" class="px-5 py-2.5">Start</th>
+              <th scope="col" class="px-3 py-2.5">End</th>
+              <th scope="col" class="px-3 py-2.5">Duration</th>
+              <th scope="col" class="px-3 py-2.5">Task</th>
+              <th scope="col" class="px-3 py-2.5">Comment</th>
+              <th scope="col" class="px-3 py-2.5">ID</th>
+              <th scope="col" class="px-3 py-2.5">Created at</th>
+              <th scope="col" class="px-5 py-2.5"><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          @if (loading() && items().length === 0) {
             <tbody>
-              <tr class="border-y border-slate-200 bg-slate-50/80">
-                <th scope="colgroup" colspan="8" class="px-5 py-2 text-left">
-                  <span class="flex items-center justify-between gap-4 text-[13px]">
-                    <span class="font-semibold text-slate-900">{{ g.label }}</span>
-                    <span class="text-slate-500">
-                      {{ g.entries.length }} {{ g.entries.length === 1 ? 'entry' : 'entries' }} ·
-                      <strong class="text-slate-900 tabular-nums">{{ g.total }}</strong>
-                    </span>
-                  </span>
-                </th>
-              </tr>
-              @for (e of g.entries; track e.id) {
-                <tr class="border-b border-slate-100 hover:bg-slate-50">
-                  <td class="px-5 py-3 whitespace-nowrap text-slate-700 tabular-nums" [title]="e.start">{{ e.start | date: 'HH:mm' }}</td>
-                  <td class="px-3 py-3 whitespace-nowrap text-slate-700 tabular-nums" [title]="e.end">{{ e.end | date: (sameDay(e) ? 'HH:mm' : 'MMM d, HH:mm') }}</td>
-                  <td class="px-3 py-3">
-                    <span class="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-indigo-800 tabular-nums">{{ duration(e) }}</span>
-                  </td>
-                  <td class="max-w-56 px-3 py-3">
-                    <span class="block truncate font-semibold text-slate-900">{{ taskName(e.taskId) ?? 'Task #' + e.taskId }}</span>
-                    <span class="block truncate text-xs text-slate-500">
-                      #{{ e.taskId }}{{ taskPath(e.taskId) ? ' · ' + taskPath(e.taskId) : '' }}
-                    </span>
-                  </td>
-                  <td class="max-w-xs truncate px-3 py-3 text-slate-700" [title]="e.comment">{{ e.comment }}</td>
-                  <td class="px-3 py-3 font-mono text-xs text-slate-500">#{{ e.id }}</td>
-                  <td class="px-3 py-3 whitespace-nowrap text-xs text-slate-500" [title]="e.createdAt">{{ e.createdAt | date: 'MMM d, HH:mm' }}</td>
-                  <td class="px-5 py-2 text-right whitespace-nowrap">
-                    <a [routerLink]="[e.id, 'edit']" queryParamsHandling="preserve"
-                       class="inline-grid size-9 place-items-center rounded-lg text-slate-500 hover:bg-indigo-50 hover:text-indigo-700"
-                       [attr.aria-label]="'Edit entry #' + e.id" title="Edit">
-                      <app-icon name="pencil" cls="size-4" />
-                    </a>
-                    <button type="button" (click)="askDelete(e)" [disabled]="deleting() === e.id"
-                            class="inline-grid size-9 place-items-center rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-40"
-                            [attr.aria-label]="'Delete entry #' + e.id" title="Delete">
-                      <app-icon name="trash" cls="size-4" />
-                    </button>
-                  </td>
-                </tr>
+              @for (row of [1, 2, 3, 4, 5]; track row) {
+                <tr><td colspan="8" class="px-5 py-3"><div class="h-6 animate-pulse rounded bg-slate-100"></div></td></tr>
               }
             </tbody>
-          } @empty {
-            @if (!error()) {
+          } @else {
+            @for (g of groups(); track g.key + $index) {
               <tbody>
-                <tr>
-                  <td colspan="8" class="px-5 py-14 text-center">
-                    @if (page() > 1) {
-                      <p class="font-medium text-slate-900">No entries on this page</p>
-                      <button type="button" class="btn btn-secondary mt-4" (click)="go(1)">Go to the first page</button>
-                    } @else {
-                      <span class="mx-auto mb-3 grid size-12 place-items-center rounded-full bg-indigo-50 text-indigo-600">
-                        <app-icon name="clock" cls="size-6" />
+                <tr class="border-y border-slate-200 bg-slate-50/80">
+                  <th scope="colgroup" colspan="8" class="px-5 py-2 text-left">
+                    <span class="flex items-center justify-between gap-4 text-[13px]">
+                      <span class="font-semibold text-slate-900">{{ g.label }}</span>
+                      <span class="text-slate-500">
+                        {{ g.entries.length }} {{ g.entries.length === 1 ? 'entry' : 'entries' }} ·
+                        <strong class="text-slate-900 tabular-nums">{{ g.total }}</strong>
                       </span>
-                      <p class="font-medium text-slate-900">No time entries yet</p>
-                      <p class="mt-1 text-sm text-slate-500">Use Log time above, or open a task under Clients &amp; projects.</p>
-                    }
-                  </td>
+                    </span>
+                  </th>
                 </tr>
+                @for (e of g.entries; track e.id) {
+                  <tr class="border-b border-slate-100 hover:bg-slate-50">
+                    <td class="px-5 py-3 whitespace-nowrap text-slate-700 tabular-nums" [title]="e.start">{{ e.start | date: 'HH:mm' }}</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-slate-700 tabular-nums" [title]="e.end">{{ e.end | date: (sameDay(e) ? 'HH:mm' : 'MMM d, HH:mm') }}</td>
+                    <td class="px-3 py-3">
+                      <span class="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-indigo-800 tabular-nums">{{ duration(e) }}</span>
+                    </td>
+                    <td class="max-w-56 px-3 py-3">
+                      <span class="block truncate font-semibold text-slate-900">{{ taskName(e.taskId) ?? 'Task #' + e.taskId }}</span>
+                      <span class="block truncate text-xs text-slate-500">
+                        #{{ e.taskId }}{{ taskPath(e.taskId) ? ' · ' + taskPath(e.taskId) : '' }}
+                      </span>
+                    </td>
+                    <td class="max-w-xs truncate px-3 py-3 text-slate-700" [title]="e.comment">{{ e.comment }}</td>
+                    <td class="px-3 py-3 font-mono text-xs text-slate-500">#{{ e.id }}</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-xs text-slate-500" [title]="e.createdAt">{{ e.createdAt | date: 'MMM d, HH:mm' }}</td>
+                    <td class="px-5 py-2 text-right whitespace-nowrap">
+                      <a [routerLink]="[e.id, 'edit']" queryParamsHandling="preserve"
+                         class="inline-grid size-9 place-items-center rounded-lg text-slate-500 hover:bg-indigo-50 hover:text-indigo-700"
+                         [attr.aria-label]="'Edit entry #' + e.id" title="Edit">
+                        <app-icon name="pencil" cls="size-4" />
+                      </a>
+                      <button type="button" (click)="askDelete(e)" [disabled]="deleting() === e.id"
+                              class="inline-grid size-9 place-items-center rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-40"
+                              [attr.aria-label]="'Delete entry #' + e.id" title="Delete">
+                        <app-icon name="trash" cls="size-4" />
+                      </button>
+                    </td>
+                  </tr>
+                }
               </tbody>
+            } @empty {
+              @if (!error()) {
+                <tbody>
+                  <tr>
+                    <td colspan="8" class="px-5 py-14 text-center">
+                      @if (page() > 1) {
+                        <p class="font-medium text-slate-900">No entries on this page</p>
+                        <button type="button" class="btn btn-secondary mt-4" (click)="go(1)">Go to the first page</button>
+                      } @else {
+                        <span class="mx-auto mb-3 grid size-12 place-items-center rounded-full bg-indigo-50 text-indigo-600">
+                          <app-icon name="clock" cls="size-6" />
+                        </span>
+                        <p class="font-medium text-slate-900">No time entries yet</p>
+                        <p class="mt-1 text-sm text-slate-500">Use Log time above, or open a task under Clients &amp; projects.</p>
+                      }
+                    </td>
+                  </tr>
+                </tbody>
+              }
             }
           }
-        }
-      </table>
-    </div>
-    @if (items().length) {
-      <p class="border-t border-slate-200 px-5 py-3 text-xs text-slate-500">Day totals add up the entries on this page.</p>
-    }
-  </section>
+        </table>
+      </div>
+      @if (items().length) {
+        <p class="border-t border-slate-200 px-5 py-3 text-xs text-slate-500">Day totals add up the entries on this page.</p>
+      }
+    </section>
+  }
 </div>
 
 <router-outlet />

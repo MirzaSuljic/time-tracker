@@ -1,38 +1,81 @@
-<header class="border-b border-slate-200 bg-white">
-  <div class="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 sm:px-6 lg:px-8">
-    <a routerLink="/entries" class="flex items-center gap-2.5 py-3 text-base font-bold text-slate-900">
-      <span class="grid size-8 place-items-center rounded-full bg-indigo-600 text-white">
-        <app-icon name="clock" cls="size-5" />
-      </span>
-      Time Tracker
-    </a>
+@if (auth.user(); as user) {
+  <header class="border-b border-slate-200 bg-white">
+    <div class="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 sm:px-6 lg:px-8">
+      <a routerLink="/entries" class="flex items-center py-3" aria-label="Memtime, go to Time Tracker">
+        <img src="/memtime-logo.svg" alt="" width="128" height="24" class="h-6 w-auto" />
+      </a>
 
-    <nav class="flex self-stretch" aria-label="Main">
-      <a routerLink="/entries" routerLinkActive="is-active" ariaCurrentWhenActive="page" class="top-link">Timesheet</a>
-      <a routerLink="/tree" routerLinkActive="is-active" ariaCurrentWhenActive="page" class="top-link">Clients &amp; projects</a>
-    </nav>
+      <nav class="flex self-stretch" aria-label="Main">
+        <a routerLink="/entries" routerLinkActive="is-active" ariaCurrentWhenActive="page" class="top-link">Time Tracker</a>
+        <a routerLink="/tree" routerLinkActive="is-active" ariaCurrentWhenActive="page" class="top-link">Clients &amp; projects</a>
+      </nav>
 
-    <div class="ml-auto flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs text-slate-600"
-         [title]="'The API allows ' + limit + ' requests per minute'">
-      <span class="flex gap-0.5" aria-hidden="true">
-        @for (bar of bars(); track $index) {
-          <span class="h-3 w-1 rounded-sm" [class]="bar"></span>
-        }
-      </span>
-      API: {{ limiter.remaining() }} of {{ limit }} requests left this minute
+      <div class="ml-auto flex flex-wrap items-center gap-3 py-2">
+        <div class="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs text-slate-600"
+             [title]="'The API allows ' + limit + ' requests per minute'">
+          <span class="flex gap-0.5" aria-hidden="true">
+            @for (bar of bars(); track $index) {
+              <span class="h-3 w-1 rounded-sm" [class]="bar"></span>
+            }
+          </span>
+          API: {{ limiter.remaining() }} of {{ limit }} requests left this minute
+        </div>
+
+        <span class="hidden h-7 w-px bg-slate-200 sm:block" aria-hidden="true"></span>
+
+        <div class="relative" data-user-menu>
+          <button type="button" (click)="toggleMenu()"
+                  class="flex min-h-11 items-center gap-2.5 rounded-full border py-1 pr-2.5 pl-1 text-left hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                  [class]="menuOpen() ? 'border-indigo-200 bg-indigo-50' : 'border-slate-200 bg-white'"
+                  aria-haspopup="menu" [attr.aria-expanded]="menuOpen()" [attr.aria-label]="'Account menu for ' + user.name">
+            <span class="grid size-[34px] place-items-center rounded-full bg-indigo-600 text-[13px] font-semibold text-white" aria-hidden="true">{{ auth.initials() }}</span>
+            <span class="hidden flex-col leading-tight sm:flex">
+              <span class="text-sm font-semibold text-slate-900">{{ user.name }}</span>
+              <span class="text-xs text-slate-500">{{ user.email }}</span>
+            </span>
+            <app-icon name="chevronDown" cls="size-4 text-slate-500" />
+          </button>
+
+          @if (menuOpen()) {
+            <div role="menu" aria-label="Account" class="absolute top-[calc(100%+8px)] right-0 z-50 w-72 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+              <div class="flex items-center gap-3 px-2.5 pt-2.5 pb-3.5">
+                <span class="grid size-10 shrink-0 place-items-center rounded-full bg-indigo-600 text-sm font-semibold text-white" aria-hidden="true">{{ auth.initials() }}</span>
+                <span class="min-w-0">
+                  <span class="block truncate text-sm font-semibold text-slate-900">{{ user.name }}</span>
+                  <span class="block truncate text-[13px] text-slate-600">{{ user.email }}</span>
+                  <span class="block text-xs text-slate-500">Signed in since {{ signedInSince() }}</span>
+                </span>
+              </div>
+              <div class="mx-1 mb-1.5 h-px bg-slate-200"></div>
+              <a routerLink="/entries" role="menuitem" (click)="menuOpen.set(false)"
+                 class="flex min-h-11 items-center gap-2.5 rounded-lg px-2.5 text-sm text-slate-700 hover:bg-slate-50">
+                <app-icon name="clock" cls="size-[18px]" />
+                My timesheet
+              </a>
+              <button type="button" role="menuitem" (click)="signOut()"
+                      class="flex min-h-11 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-sm font-medium text-red-700 hover:bg-red-50">
+                <app-icon name="logout" cls="size-[18px]" />
+                Sign out
+              </button>
+            </div>
+          }
+        </div>
+      </div>
     </div>
-  </div>
-</header>
+  </header>
 
-@if (limiter.waitSeconds() > 0) {
-  <div role="status" class="border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-center text-sm text-amber-900">
-    <span class="mr-2 inline-block size-3.5 animate-spin rounded-full border-2 border-amber-300 border-t-amber-700 align-[-2px]" aria-hidden="true"></span>
-    The API allows {{ limit }} requests per minute. Your request continues in {{ limiter.waitSeconds() }} s.
-  </div>
-}
+  @if (limiter.waitSeconds() > 0) {
+    <div role="status" class="border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-center text-sm text-amber-900">
+      <span class="mr-2 inline-block size-3.5 animate-spin rounded-full border-2 border-amber-300 border-t-amber-700 align-[-2px]" aria-hidden="true"></span>
+      The API allows {{ limit }} requests per minute. Your request continues in {{ limiter.waitSeconds() }} s.
+    </div>
+  }
 
-<main class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+  <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    <router-outlet />
+  </main>
+} @else {
   <router-outlet />
-</main>
+}
 
 <app-modal />

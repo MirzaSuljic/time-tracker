@@ -3,7 +3,7 @@ import { provideRouter } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { FormControl, FormGroup } from '@angular/forms';
-import { EntryFormComponent, endAfterStart, findOverlap } from './entry-form.component';
+import { EntryFormComponent, endAfterStart, findOverlap, prefillTimes } from './entry-form.component';
 import { TimeEntry } from '../../core/models/time-entry.model';
 
 describe('EntryFormComponent', () => {
@@ -48,5 +48,17 @@ describe('findOverlap', () => {
   it('ignores the entry being edited and back-to-back entries', () => {
     expect(findOverlap(entries, at('09:00'), at('10:30'), 43)).toBeNull();
     expect(findOverlap(entries, at('09:15'), at('10:30'), null)).toBeNull();
+  });
+});
+
+describe('prefillTimes', () => {
+  it('uses start and end from the week view', () => {
+    expect(prefillTimes('2026-10-20T15:00', '2026-10-20T16:00')).toEqual({ start: '2026-10-20T15:00', end: '2026-10-20T16:00' });
+  });
+
+  it('ignores missing, malformed or reversed times', () => {
+    expect(prefillTimes(null, '2026-10-20T16:00')).toBeNull();
+    expect(prefillTimes('tomorrow', '2026-10-20T16:00')).toBeNull();
+    expect(prefillTimes('2026-10-20T16:00', '2026-10-20T15:00')).toBeNull();
   });
 });

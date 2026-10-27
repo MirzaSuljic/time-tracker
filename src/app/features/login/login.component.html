@@ -1,0 +1,69 @@
+<div class="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
+  <div class="flex w-full max-w-[400px] flex-col gap-6">
+    <div class="flex flex-col items-center gap-2">
+      <img src="/memtime-logo.svg" alt="Memtime" width="160" height="30" class="h-8 w-auto" />
+      <span class="text-sm font-semibold text-slate-600">Time Tracker</span>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="card flex flex-col gap-5 rounded-2xl p-8 shadow-md">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Sign in</h1>
+        <p class="mt-1.5 text-sm text-slate-600">Log your hours on Memtime clients, projects and tasks.</p>
+      </div>
+
+      @if (error()) {
+        <div class="alert-error flex items-start gap-2.5 px-3.5 py-3" role="alert">
+          <app-icon name="alert" cls="mt-px size-[18px] shrink-0" />
+          <span>{{ error() }}</span>
+        </div>
+      }
+
+      <div class="flex flex-col gap-1.5">
+        <label for="login-email" class="label">Work email</label>
+        <input id="login-email" type="email" formControlName="email" autocomplete="username" placeholder="you@company.com"
+               class="input h-11" [class.border-red-400]="error()" [attr.aria-invalid]="showError('email') || !!error()"
+               [attr.aria-describedby]="showError('email') ? 'login-email-error' : null" />
+        @if (showError('email')) {
+          <p id="login-email-error" class="field-error">Enter a valid email address.</p>
+        }
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label for="login-password" class="label">Password</label>
+        <div class="relative">
+          <input id="login-password" [type]="showPassword() ? 'text' : 'password'" formControlName="password"
+                 autocomplete="current-password" class="input h-11 pr-12" [class.border-red-400]="error()"
+                 [attr.aria-invalid]="showError('password') || !!error()"
+                 [attr.aria-describedby]="showError('password') ? 'login-password-error' : null" />
+          <button type="button" (click)="showPassword.set(!showPassword())"
+                  class="absolute inset-y-0 right-0 grid w-11 place-items-center rounded-lg text-slate-500 hover:text-slate-800 focus-visible:outline-2 focus-visible:outline-indigo-600"
+                  [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'" [attr.aria-pressed]="showPassword()">
+            <app-icon name="eye" />
+          </button>
+        </div>
+        @if (showError('password')) {
+          <p id="login-password-error" class="field-error">Enter your password.</p>
+        }
+      </div>
+
+      <label class="flex min-h-6 cursor-pointer items-center gap-2.5 text-sm text-slate-700">
+        <input type="checkbox" formControlName="remember" class="size-[18px] accent-indigo-600" />
+        Keep me signed in on this device
+      </label>
+
+      <button type="submit" class="btn btn-primary h-11 text-[15px] font-semibold" [disabled]="loading()">
+        @if (loading()) {
+          <span class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden="true"></span>
+          Signing in…
+        } @else {
+          Sign in
+        }
+      </button>
+    </form>
+
+    <div class="alert-warning flex flex-wrap items-center justify-between gap-3">
+      <span>Demo account: <strong>{{ demo.email }}</strong> / <strong>{{ demo.password }}</strong></span>
+      <button type="button" class="btn btn-secondary min-h-9 px-3 py-1" (click)="useDemo()">Use demo account</button>
+    </div>
+  </div>
+</div>

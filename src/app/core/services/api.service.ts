@@ -13,7 +13,13 @@ export type SortOrder = 'asc' | 'desc';
 export type ClientSortField = 'name' | 'id' | 'status';
 export type EntrySortField = 'id' | 'taskId' | 'comment' | 'start' | 'end' | 'createdAt';
 const PAGE_SIZE = 50;
+const WEEK_SCAN_LIMIT = 500;
 const silent = () => ({ context: new HttpContext().set(SILENT_ERRORS, true) });
+
+export interface WeekEntries {
+  items: TimeEntry[];
+  truncated: boolean;
+}
 
 interface TaskInfo {
   name: string;
@@ -126,20 +132,59 @@ export class ApiService {
       );
   }
 
+  getWeekEntries(weekStart: Date): Observable<WeekEntries> {
+    const from = weekStart.getTime();
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    const to = weekEnd.getTime();
+    const page = (offset: number) =>
+      this.http
+        .get<TimeEntry[]>(`${BASE}/time-entries`, { params: { limit: PAGE_SIZE, offset, sortBy: 'start', order: 'desc' } })
+        .pipe(map(items => ({ items, offset })));
+    const reachesBack = (items: TimeEntry[]) => {
+      const last = items.at(-1);
+      return items.length === PAGE_SIZE && !!last && new Date(last.start).getTime() >= from;
+    };
+
+    return this.cached(`week:${from}`, () =>
+      page(0).pipe(
+        expand(({ items, offset }) =>
+          reachesBack(items) && offset + PAGE_SIZE < WEEK_SCAN_LIMIT ? page(offset + PAGE_SIZE) : EMPTY,
+        ),
+        reduce(
+          (acc, { items, offset }) => ({
+            items: acc.items.concat(items),
+            truncated: reachesBack(items) && offset + PAGE_SIZE >= WEEK_SCAN_LIMIT,
+          }),
+          { items: [] as TimeEntry[], truncated: false },
+        ),
+        map(r => ({
+          items: r.items.filter(e => new Date(e.start).getTime() < to && new Date(e.end).getTime() > from),
+          truncated: r.truncated,
+        })),
+      ),
+    ).pipe(tap(r => this.entries.set(r.items)));
+  }
+
   getTimeEntry(id: number) {
     return this.http.get<TimeEntry>(`${BASE}/time-entries/${id}`);
   }
 
   createTimeEntry(body: TimeEntryInput) {
-    return this.http.post<TimeEntry>(`${BASE}/time-entries`, body).pipe(tap(() => this.changed.next()));
+    return this.http.post<TimeEntry>(`${BASE}/time-entries`, body).pipe(tap(() => this.entriesUpdated()));
   }
 
   updateTimeEntry(id: number, body: TimeEntryInput) {
-    return this.http.put<TimeEntry>(`${BASE}/time-entries/${id}`, body).pipe(tap(() => this.changed.next()));
+    return this.http.put<TimeEntry>(`${BASE}/time-entries/${id}`, body).pipe(tap(() => this.entriesUpdated()));
   }
 
   deleteTimeEntry(id: number) {
-    return this.http.delete(`${BASE}/time-entries/${id}`).pipe(tap(() => this.changed.next()));
+    return this.http.delete(`${BASE}/time-entries/${id}`).pipe(tap(() => this.entriesUpdated()));
+  }
+
+  private entriesUpdated() {
+    for (const key of [...this.cache.keys()]) if (key.startsWith('week:')) this.cache.delete(key);
+    this.changed.next();
   }
 
   private listParams(page: number, pageSize: number, sortBy?: string, order: SortOrder = 'asc') {

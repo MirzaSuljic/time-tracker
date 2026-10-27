@@ -17,6 +17,14 @@ import { formatDuration, isoToLocal, localToIso, nowLocal, shiftLocal } from '..
 import { IconComponent } from '../../core/ui/icon.component';
 
 const LONG_ENTRY_HOURS = 12;
+const LOCAL_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+
+export function prefillTimes(start: string | null, end: string | null): { start: string; end: string } | null {
+  if (!start || !end || !LOCAL_DATE_TIME.test(start) || !LOCAL_DATE_TIME.test(end)) return null;
+  const s = new Date(start).getTime();
+  const e = new Date(end).getTime();
+  return Number.isFinite(s) && Number.isFinite(e) && e > s ? { start, end } : null;
+}
 
 export function endAfterStart(group: AbstractControl): ValidationErrors | null {
   const { start, end } = group.value;
@@ -119,6 +127,9 @@ export class EntryFormComponent implements OnInit {
     if (taskId) this.selectTask(taskId);
     else if (!id) this.openPicker();
 
+    const times = id ? null : prefillTimes(this.route.snapshot.queryParamMap.get('start'), this.route.snapshot.queryParamMap.get('end'));
+    if (times) this.form.patchValue(times);
+
     if (id) {
       this.entryId = Number(id);
       this.loadingEntry.set(true);
@@ -197,7 +208,7 @@ export class EntryFormComponent implements OnInit {
   close() {
     if (this.saving() || this.deleting() || this.modalService.isOpen) return;
     this.router.navigate(['/entries'], {
-      queryParams: { taskId: null },
+      queryParams: { taskId: null, start: null, end: null },
       queryParamsHandling: 'merge',
     });
   }
