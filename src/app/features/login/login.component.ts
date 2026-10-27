@@ -5,7 +5,7 @@ import { AuthService, DEMO_ACCOUNTS } from '../../core/services/auth.service';
 import { IconComponent } from '../../core/ui/icon.component';
 
 export function safeReturnUrl(value: string | null): string {
-  if (!value || !value.startsWith('/') || value.startsWith('//') || value.startsWith('/login')) return '/entries';
+  if (!value || !value.startsWith('/') || value.startsWith('//') || value.startsWith('/login')) return '/tree';
   return value;
 }
 

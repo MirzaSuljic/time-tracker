@@ -13,7 +13,7 @@
     </button>
     <div class="my-2 h-px bg-slate-200"></div>
     <ul role="tree" aria-label="Current path">
-      <li role="treeitem" aria-expanded="true">
+      <li role="treeitem" aria-expanded="true" [attr.aria-selected]="level() === 'projects'">
         <button type="button" (click)="toProjects()"
                 class="flex min-h-12 w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-slate-50"
                 [class]="level() === 'projects' ? 'bg-indigo-50' : ''"
@@ -28,7 +28,7 @@
         </button>
         @if (projectId()) {
           <ul role="group" class="ml-5">
-            <li role="treeitem" aria-expanded="true" class="relative pl-[18px]">
+            <li role="treeitem" aria-expanded="true" [attr.aria-selected]="level() === 'tasks'" class="relative pl-[18px]">
               <span class="absolute top-0 left-0 h-6 w-3.5 rounded-bl-md border-b-2 border-l-2 border-slate-300" aria-hidden="true"></span>
               <button type="button" (click)="toProject()"
                       class="flex min-h-12 w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-slate-50"

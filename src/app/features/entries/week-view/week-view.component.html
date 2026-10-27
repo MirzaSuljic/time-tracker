@@ -67,11 +67,13 @@
       </div>
 
       @for (d of days(); track d.key) {
-        <div class="relative cursor-copy border-l border-slate-200" [class.bg-slate-50]="d.index >= 5"
-             [style.height.px]="gridHeight()" [style.background-image]="gridLines"
-             (click)="addAt(d, $event)" [title]="'Click to log time on ' + weekday(d, 'long')">
+        <div class="relative border-l border-slate-200" [class.bg-slate-50]="d.index >= 5"
+             [style.height.px]="gridHeight()" [style.background-image]="gridLines">
+          <button type="button" (click)="addAt(d, $event)"
+                  class="absolute inset-0 cursor-copy focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600"
+                  [title]="'Click to log time on ' + weekday(d, 'long')" [attr.aria-label]="'Log time on ' + weekday(d, 'long')"></button>
           @for (g of d.gaps; track g.startMin) {
-            <button type="button" (click)="$event.stopPropagation(); fillGap(d, g)"
+            <button type="button" (click)="fillGap(d, g)"
                     class="absolute inset-x-1 flex items-center justify-center gap-1 overflow-hidden rounded-lg border-[1.5px] border-dashed border-slate-400 bg-white/80 text-xs font-semibold text-slate-600 hover:border-indigo-500 hover:bg-indigo-50 hover:text-indigo-700 focus-visible:outline-2 focus-visible:outline-indigo-600"
                     [style.top.px]="top(g.startMin) + 2" [style.height.px]="height(g.startMin, g.endMin) - 4"
                     [attr.aria-label]="gapLabel(d, g)">
@@ -83,7 +85,7 @@
           }
 
           @for (b of d.blocks; track b.entry.id) {
-            <a [routerLink]="[b.entry.id, 'edit']" queryParamsHandling="preserve" (click)="$event.stopPropagation()"
+            <a [routerLink]="[b.entry.id, 'edit']" queryParamsHandling="preserve"
                class="absolute flex flex-col gap-0.5 overflow-hidden rounded-lg border px-2 py-1 text-left focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-indigo-600"
                [class]="color(b.entry.taskId) + (b.overlaps ? ' ring-2 ring-orange-500' : '')"
                [style.top.px]="top(b.startMin) + 1" [style.height.px]="height(b.startMin, b.endMin) - 2"

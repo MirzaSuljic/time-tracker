@@ -32,6 +32,7 @@ const COLORS = [
 ];
 const SLOT_MINUTES = 30;
 const NEW_ENTRY_MINUTES = 60;
+const KEYBOARD_START_MINUTES = 9 * 60;
 
 @Component({
   selector: 'app-week-view',
@@ -180,8 +181,9 @@ export class WeekViewComponent {
 
   addAt(day: WeekDay, event: MouseEvent) {
     const column = event.currentTarget as HTMLElement;
+    const fromKeyboard = event.detail === 0;
     const y = event.clientY - column.getBoundingClientRect().top;
-    const raw = this.range().from * 60 + (y / HOUR_PX) * 60;
+    const raw = fromKeyboard ? Math.max(this.range().from * 60, KEYBOARD_START_MINUTES) : this.range().from * 60 + (y / HOUR_PX) * 60;
     const start = Math.floor(raw / SLOT_MINUTES) * SLOT_MINUTES;
     this.openNew(day, start, Math.min(24 * 60, start + NEW_ENTRY_MINUTES));
   }

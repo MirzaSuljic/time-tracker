@@ -9,7 +9,7 @@ import { LoginComponent } from './features/login/login.component';
 import { authGuard, guestGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'entries', pathMatch: 'full' },
+  { path: '', redirectTo: 'tree', pathMatch: 'full' },
   { path: 'login', component: LoginComponent, canActivate: [guestGuard], title: 'Sign in · Time Tracker' },
   { path: 'tree', component: TreeComponent, canActivate: [authGuard], title: 'Clients & projects · Time Tracker' },
   {
@@ -32,5 +32,5 @@ export const routes: Routes = [
       { path: ':id/edit', component: EntryFormComponent, title: 'Edit time entry · Time Tracker' },
     ],
   },
-  { path: '**', redirectTo: 'entries' },
+  { path: '**', redirectTo: 'tree' },
 ];

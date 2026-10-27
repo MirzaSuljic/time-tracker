@@ -29,10 +29,10 @@ describe('safeReturnUrl', () => {
     expect(safeReturnUrl('/tree?page=2')).toBe('/tree?page=2');
   });
 
-  it('falls back to the timesheet for missing, external or login urls', () => {
-    expect(safeReturnUrl(null)).toBe('/entries');
-    expect(safeReturnUrl('https://evil.example')).toBe('/entries');
-    expect(safeReturnUrl('//evil.example')).toBe('/entries');
-    expect(safeReturnUrl('/login')).toBe('/entries');
+  it('falls back to clients and projects for missing, external or login urls', () => {
+    expect(safeReturnUrl(null)).toBe('/tree');
+    expect(safeReturnUrl('https://evil.example')).toBe('/tree');
+    expect(safeReturnUrl('//evil.example')).toBe('/tree');
+    expect(safeReturnUrl('/login')).toBe('/tree');
   });
 });

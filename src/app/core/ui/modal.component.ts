@@ -10,9 +10,11 @@ import { IconComponent } from './icon.component';
   template: `
     @if (modalService.visible()) {
       @let m = modalService.modal();
-      <div class="fixed inset-0 z-[60] grid place-items-center bg-slate-900/40 p-4 backdrop-blur-sm" (click)="dismiss()">
+      <div class="fixed inset-0 z-[60] grid place-items-center p-4">
+        <button type="button" tabindex="-1" aria-label="Close" (click)="dismiss()"
+                class="absolute inset-0 cursor-default bg-slate-900/40 backdrop-blur-sm"></button>
         <div role="alertdialog" aria-modal="true" aria-labelledby="app-modal-title" aria-describedby="app-modal-text" tabindex="-1" #panel
-             class="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl outline-none" (click)="$event.stopPropagation()">
+             class="relative w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl outline-none">
           @if (m.tone !== 'info') {
             <span class="mx-auto grid size-12 place-items-center rounded-full bg-red-50 text-red-600">
               <app-icon name="close" cls="size-6" />

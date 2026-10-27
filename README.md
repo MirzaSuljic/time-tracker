@@ -32,7 +32,7 @@ Delete (`DELETE /time-entries/:id`) is not required by the task; it is included 
 
 ## How a user works with it
 
-1. **Sign in.** The login page opens first; after signing in you land where you wanted to go, and your name and email are in the top right corner with a Sign out option.
+1. **Sign in.** The login page opens first; after signing in you land on Clients & projects (or wherever you wanted to go), and your name and email are in the top right corner with a Sign out option.
 2. **Morning.** Open the Timesheet. The quick add bar already has your last task selected and the time set to the last hour. Type what you worked on and press Add entry.
 3. **The next block.** After saving, the next entry starts where the previous one ended, so a working day is logged without gaps or overlaps. The day's total updates in the list below.
 4. **Another task.** Pick one of your recent tasks in the quick add bar, or open Clients & projects, go to client → project → task and press Log time. The dialog opens with that task already selected.

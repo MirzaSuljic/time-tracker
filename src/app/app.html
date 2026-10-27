@@ -1,13 +1,13 @@
 @if (auth.user(); as user) {
   <header class="border-b border-slate-200 bg-white">
     <div class="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 sm:px-6 lg:px-8">
-      <a routerLink="/entries" class="flex items-center py-3" aria-label="Memtime, go to Time Tracker">
+      <a routerLink="/tree" class="flex items-center py-3" aria-label="Memtime, go to Clients &amp; projects">
         <img src="/memtime-logo.svg" alt="" width="128" height="24" class="h-6 w-auto" />
       </a>
 
       <nav class="flex self-stretch" aria-label="Main">
-        <a routerLink="/entries" routerLinkActive="is-active" ariaCurrentWhenActive="page" class="top-link">Time Tracker</a>
         <a routerLink="/tree" routerLinkActive="is-active" ariaCurrentWhenActive="page" class="top-link">Clients &amp; projects</a>
+        <a routerLink="/entries" routerLinkActive="is-active" ariaCurrentWhenActive="page" class="top-link">Time Tracker</a>
       </nav>
 
       <div class="ml-auto flex flex-wrap items-center gap-3 py-2">

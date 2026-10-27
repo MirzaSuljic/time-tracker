@@ -28,6 +28,6 @@ describe('auth guards', () => {
   it('keeps a signed-in user away from the login page', () => {
     auth.startSession({ name: 'Demo User', email: 'demo@memtime.com' }, false);
     const result = TestBed.runInInjectionContext(() => guestGuard(route, state)) as UrlTree;
-    expect(TestBed.inject(Router).serializeUrl(result)).toBe('/entries');
+    expect(TestBed.inject(Router).serializeUrl(result)).toBe('/tree');
   });
 });
